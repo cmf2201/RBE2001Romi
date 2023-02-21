@@ -1,0 +1,28 @@
+functions I want to Create:
+
+SERVO:
+- zero servo
+- control servo to move to particular positions
+- setup which servo we are using
+- define which pin the servo is using
+- "stuck" and "finsihed" implimentations
+
+MOVEMENT:
+- Chassis.h
+
+Blue Motor:
+- Move to etc
+
+REMOTE CONTROL:
+- setup to "set" particular inputs to particular functions
+- maybe "toggle" those functions to be "running" "stop running" or "run once"
+
+ULTRASONIC: 
+- Idk if need to write whole new "library" for these functions
+
+LINE FOLLOWING:
+- function to simply set up line following
+- function for reseting current mode
+- maybe function to adjust the compensation of the motors? (may just want to do this in main)
+
+
