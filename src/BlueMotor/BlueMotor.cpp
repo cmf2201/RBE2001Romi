@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <BlueMotor.h>
+#include "BlueMotor.h"
 #include <Romi32U4.h>
 
 long oldValue = 0;

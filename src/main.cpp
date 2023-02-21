@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <Romi32U4.h>
-#include <BlueMotor.h>
+#include "BlueMotor/BlueMotor.h"
 #include <servo32u4.h>
 #include "Timer.h"
 #include "IRdecoder.h"
-#include "RemoteConstants.h"
+#include "RemoteControl/RemoteConstants.h"
 
 BlueMotor motor;
 Romi32U4ButtonA buttonA;
