@@ -11,6 +11,8 @@ Romi32U4ButtonA buttonA;
 Romi32U4ButtonB buttonB;
 Romi32U4ButtonC buttonC;
 
+RemoteControl remoteControl(14);
+
 #define BOTTOM_OUT_GRIPPER true
 
 Servo32U4Pin5 gripperServo;
@@ -72,7 +74,7 @@ int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
 // Remote Testing Variables
-IRDecoder decoder(14);
+IRDecoder decoder(13);
 
 bool paused = false;
 

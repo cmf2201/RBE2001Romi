@@ -2,12 +2,15 @@
 #include "RemoteControl.h"
 #include "IRdecoder.h"
 
-IRDecoder irdecoder;
+IRDecoder irdecoder(-1);
 
-RemoteControl::RemoteControl(uint8_t pin) {
-    irdecoder = new IRDecoder(pin);
-}
 
 void RemoteControl::setup() {
+    irdecoder = IRDecoder(pin);
+    irdecoder.init();
     return;
+}
+
+void RemoteControl::test() {
+    Serial.println(pin);
 }

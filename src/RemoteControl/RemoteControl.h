@@ -3,11 +3,11 @@
 class RemoteControl
 {
     private:
-    
+        uint8_t pin = -1;
     public:
-        uint8_t remotePin = -1;
-        RemoteControl(uint8_t p) : remotePin(p) {};
+        RemoteControl(uint8_t p) : pin(p) {};
         void setup();
+        void test();
 
 
 };
