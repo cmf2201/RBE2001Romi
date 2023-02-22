@@ -7,6 +7,7 @@ class RemoteControl
         typedef void (*Func)(void);
         Func functions[maxNumberOfFunctions];
         bool activeFunctions[maxNumberOfFunctions];
+        bool runOnce[maxNumberOfFunctions];
         uint8_t remoteButtons[maxNumberOfFunctions];
         uint8_t pin = -1;
         int currentFunctionCount = 0;
@@ -16,7 +17,8 @@ class RemoteControl
         RemoteControl(uint8_t p) : pin(p) {};
         void setup();
         void test();
-        void running(Func func, uint8_t remoteButton);
+        void toggleFunc(Func func, uint8_t remoteButton);
+        void onPress(Func func, uint8_t remoteButton);
         void runCurrentFunctions();
         void remoteFunctions();
         void checkRemoteButtons();

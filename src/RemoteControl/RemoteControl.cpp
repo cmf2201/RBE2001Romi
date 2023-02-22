@@ -5,13 +5,13 @@
 
 // #define maxNumberOfFunctions 20
 
-IRDecoder irdecoder(-1);
+IRDecoder decoder(-1);
 
 
 // setup the remote Control 
 void RemoteControl::setup() {
-    irdecoder = IRDecoder(pin);
-    irdecoder.init();
+    decoder = IRDecoder(pin);
+    decoder.init();
     return;
 }
 
@@ -19,8 +19,8 @@ void RemoteControl::test() {
     Serial.println(pin);
 }
 
-// Used to define a function that should continuously run when the given button is pressed
-void RemoteControl::running(Func func, uint8_t remoteButton) {
+// Defines a function that should continuously run when the given button is pressed
+void RemoteControl::toggleFunc(Func func, uint8_t remoteButton) {
     if(currentFunctionCount >= maxNumberOfFunctions) { 
         Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
         return;
@@ -29,6 +29,18 @@ void RemoteControl::running(Func func, uint8_t remoteButton) {
     remoteButtons[currentFunctionCount] = remoteButton;
 
     currentFunctionCount++;
+}
+
+// Defines a function that should run once when a given button is pressed
+void RemoteControl::onPress(Func func, uint8_t remoteButton) {
+    if(currentFunctionCount >= maxNumberOfFunctions) { 
+        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
+        return;
+    }
+
+    runOnce[currentFunctionCount] = true;
+    toggleFunc(func,remoteButton);
+
 }
 
 //run all defined functions so far
@@ -42,15 +54,17 @@ void RemoteControl::runCurrentFunctions() {
 //check if the remote is being pressed for any functions, and runs functions that are active
 void RemoteControl::checkRemoteButtons() {
     int16_t code = decoder.getKeyCode();
-    for(int i = 0;i < currentFunctionCount; i++) {
+    for(int i = 0; i < currentFunctionCount; i++) {
         if(code == remoteButtons[i]) {
-            activeFunctions[i] = !activeFunctions;
-            Serial.print(i);
-            Serial.println(" ACTIVE!");
+            if(runOnce[i]){
+                functions[i]();
+            } else {
+                activeFunctions[i] = !activeFunctions[i];
+            }
         }
-        
+
         if(activeFunctions[i]) {
-            functions[i]();
+            functions[i]();         
         }
     }
 }

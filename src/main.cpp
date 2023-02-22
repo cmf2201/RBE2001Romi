@@ -3,7 +3,7 @@
 #include "BlueMotor/BlueMotor.h"
 #include <servo32u4.h>
 #include "Timer.h"
-#include "IRdecoder.h"
+// #include "IRdecoder.h"
 #include "RemoteControl/RemoteConstants.h"
 #include "RemoteControl/RemoteControl.h"
 
@@ -75,7 +75,7 @@ int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
 // Remote Testing Variables
-IRDecoder decoder(13);
+// IRDecoder decoder(13);
 
 bool paused = false;
 
@@ -91,6 +91,14 @@ void printThird() {
   Serial.println("3!");
 }
 
+void printFourth() {
+  Serial.println("4!");
+}
+
+void printFifth() {
+  Serial.println("5!");
+}
+
 
 void setup()
 {
@@ -102,11 +110,14 @@ void setup()
 
   remoteControl.setup();
 
-  remoteControl.running(printFirst,remoteUp);
-  remoteControl.running(printSecond,remoteDown);
-  remoteControl.running(printThird,remote0);
+  remoteControl.toggleFunc(printFirst,remoteUp);
+  remoteControl.toggleFunc(printSecond,remoteDown);
+  remoteControl.toggleFunc(printThird,remote0);
 
-  delay(10000);
+  remoteControl.onPress(printFourth,remote2);
+  remoteControl.onPress(printFifth,remote4);
+
+  delay(4000);
   Serial.println("READY!");
 
   remoteControl.runCurrentFunctions();
@@ -402,21 +413,21 @@ void resetMode() {
   }
 }
 
-void checkRemote(){
-  int16_t code = decoder.getKeyCode();
-  switch (code)
-  {
-  case remotePlayPause:
-    // resetMode();
-   paused = true;
-    break;
+// void checkRemote(){
+//   int16_t code = decoder.getKeyCode();
+//   switch (code)
+//   {
+//   case remotePlayPause:
+//     // resetMode();
+//    paused = true;
+//     break;
   
-  case remoteVolPlus:
-    paused = false;
-    break;
-  }
-  Serial.println(paused);
-}
+//   case remoteVolPlus:
+//     paused = false;
+//     break;
+//   }
+//   Serial.println(paused);
+// }
 
 void loop()
 {
@@ -427,7 +438,7 @@ void loop()
     // checkRemote();  
 
   // Reset mode for troubleshooting
-    resetMode();
+    // resetMode();
 
   // Enters linear gripper mode to test and use linear gripper functionality
   // linearGripper();
@@ -437,6 +448,8 @@ void loop()
 
   // positional code
   // goToPositions();
+
+  remoteControl.checkRemoteButtons();
 
 }
 
