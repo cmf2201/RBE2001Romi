@@ -17,6 +17,10 @@ REMOTE CONTROL:
 - setup to "set" particular inputs to particular functions
 - maybe "toggle" those functions to be "running" "stop running" or "run once"
 
+pass in a function
+declare a new class for each function? 
+add each class instance to a list
+
 ULTRASONIC: 
 - Idk if need to write whole new "library" for these functions
 
@@ -25,4 +29,4 @@ LINE FOLLOWING:
 - function for reseting current mode
 - maybe function to adjust the compensation of the motors? (may just want to do this in main)
 
-
+change pin A6 to A11 (12)

@@ -5,6 +5,7 @@
 #include "Timer.h"
 #include "IRdecoder.h"
 #include "RemoteControl/RemoteConstants.h"
+#include "RemoteControl/RemoteControl.h"
 
 BlueMotor motor;
 Romi32U4ButtonA buttonA;
@@ -78,30 +79,39 @@ IRDecoder decoder(13);
 
 bool paused = false;
 
+void printFirst() {
+  Serial.println("1!");
+}
+
+void printSecond() {
+  Serial.println("2!");
+}
+
+void printThird() {
+  Serial.println("3!");
+}
+
+
 void setup()
 {
   //Start the serial monitor
   Serial.begin(9600);
 
-  //setup the blue motor
   motor.setup();
-  // motor.reset();
-  //setup the Servo / encoder
-  if(BOTTOM_OUT_GRIPPER) {
-    gripperServo.setMinMaxMicroseconds(0,1400);
-  } else {
-    gripperServo.setMinMaxMicroseconds(0,2000);
-  }
-  gripperServo.attach();
-  jawServo.attach();
-  decoder.init();
+  motor.reset();
 
-  // gripperServo.writeMicroseconds(10);
+  remoteControl.setup();
 
-  //ensure motor has had time to reset/setup
-  delay(3000);
+  remoteControl.running(printFirst,remoteUp);
+  remoteControl.running(printSecond,remoteDown);
+  remoteControl.running(printThird,remote0);
+
+  delay(10000);
   Serial.println("READY!");
+
+  remoteControl.runCurrentFunctions();
 }
+
 
 
 
@@ -411,13 +421,13 @@ void checkRemote(){
 void loop()
 {
   // check the battery
-    batteryCheck();
+    // batteryCheck();
 
   // Code to test Remote
-    checkRemote();  
+    // checkRemote();  
 
   // Reset mode for troubleshooting
-  //   resetMode();
+    resetMode();
 
   // Enters linear gripper mode to test and use linear gripper functionality
   // linearGripper();
