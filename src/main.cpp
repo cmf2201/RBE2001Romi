@@ -6,18 +6,30 @@
 // #include "IRdecoder.h"
 #include "RemoteControl/RemoteConstants.h"
 #include "RemoteControl/RemoteControl.h"
+#include <QTRSensors.h>
+#include <Chassis.h>
 
 BlueMotor motor;
 Romi32U4ButtonA buttonA;
 Romi32U4ButtonB buttonB;
 Romi32U4ButtonC buttonC;
 
-RemoteControl remoteControl(14);
+RemoteControl remoteControl(2);
 
 #define BOTTOM_OUT_GRIPPER true
 
 Servo32U4Pin5 gripperServo;
 Servo32U4 jawServo;
+
+
+Chassis chassis;
+
+
+//QTR Sensors
+QTRSensors qtr;
+
+const uint8_t SensorCount = 2;
+uint16_t sensorValues[SensorCount];
 
 
 //Linear Servo declarations
@@ -79,24 +91,99 @@ int deadBandCurrentEffort = 0;
 
 bool paused = false;
 
-void printFirst() {
-  Serial.println("1!");
+void moveUp(void);
+void moveDown(void);
+
+
+void stopIt() {
+  Serial.println("ESTOP");
+  motor.setEffort(0);
+  gripperServo.writeMicroseconds(0);
+  chassis.setMotorEfforts(0,0);
 }
 
-void printSecond() {
-  Serial.println("2!");
+void printTest() {
+  Serial.print("AO: ");
+  Serial.println(analogRead(A0));
+  Serial.print("A2: ");
+  Serial.println(analogRead(A2));
+  Serial.print("A3: ");
+  Serial.println(analogRead(A3));
+  Serial.print("A4: ");
+  Serial.println(analogRead(A4));
 }
 
-void printThird() {
-  Serial.println("3!");
+void closeServo() {
+  gripperServo.writeMicroseconds(2000);
 }
 
-void printFourth() {
-  Serial.println("4!");
+void openServo() {
+  gripperServo.writeMicroseconds(10);
 }
 
-void printFifth() {
-  Serial.println("5!");
+
+void ultrasonicDistance() {
+
+}
+
+void lineFollowCalibration() {
+  qtr.resetCalibration();
+  for (uint16_t i = 0; i < 400; i++)
+  {
+    qtr.calibrate();
+  }
+
+  // print the calibration minimum values measured when emitters were on
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print(qtr.calibrationOn.minimum[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+
+  // print the calibration maximum values measured when emitters were on
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print(qtr.calibrationOn.maximum[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+  Serial.println();
+}
+
+void qtrReadings() {
+  // read calibrated sensor values and obtain a measure of the line position
+  // from 0 to 5000 (for a white line, use readLineWhite() instead)
+  uint16_t position = qtr.readLineBlack(sensorValues);
+
+  // print the sensor values as numbers from 0 to 1000, where 0 means maximum
+  // reflectance and 1000 means minimum reflectance, followed by the line
+  // position
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print("sensor:");
+    Serial.print(i);
+    Serial.print('\t');
+    Serial.print(sensorValues[i]);
+    Serial.print('\t');
+  }
+  Serial.print("POSITION:");
+  Serial.println(position);
+
+}
+
+
+void lineFollowing() {
+  uint16_t position = qtr.readLineBlack(sensorValues);
+  if(position > 700) {
+    Serial.println("FAR RIGHT");
+    chassis.setMotorEfforts(100,80);
+  } else if (position < 300) {
+    Serial.println("FAR LEFT");
+    chassis.setMotorEfforts(80,100);
+  } else {
+    chassis.setMotorEfforts(100,100);
+  }
 }
 
 
@@ -108,19 +195,46 @@ void setup()
   motor.setup();
   motor.reset();
 
+  chassis.init();
+
+  gripperServo.setMinMaxMicroseconds(0,2000);
+  gripperServo.writeMicroseconds(0);
+
+  qtr.setTypeAnalog();
+  qtr.setSensorPins((const uint8_t[]){A4, A3}, SensorCount);
+
   remoteControl.setup();
 
-  remoteControl.toggleFunc(printFirst,remoteUp);
-  remoteControl.toggleFunc(printSecond,remoteDown);
-  remoteControl.toggleFunc(printThird,remote0);
+  remoteControl.onPress(moveUp,remoteUp);
+  remoteControl.onPress(moveDown,remoteDown);
 
-  remoteControl.onPress(printFourth,remote2);
-  remoteControl.onPress(printFifth,remote4);
+  remoteControl.onPress(stopIt,remoteEnterSave);
+  remoteControl.onPress(printTest,remote0);
+
+  remoteControl.eStop(stopIt,remote8);
+
+  remoteControl.onPress(closeServo,remote1);
+  remoteControl.onPress(openServo,remote2);
+
+  remoteControl.onPress(lineFollowCalibration,remote4);
+  remoteControl.toggleFunc(qtrReadings,remote6);
+  remoteControl.toggleFunc(lineFollowing,remote5);
 
   delay(4000);
   Serial.println("READY!");
 
-  remoteControl.runCurrentFunctions();
+  // remoteControl.runCurrentFunctions();
+}
+
+
+void moveUp() {
+  motor.setEffort(400);
+  Serial.println("UP");
+}
+
+void moveDown() {
+  motor.setEffort(-400);
+  Serial.println("DOWN");
 }
 
 
@@ -450,6 +564,8 @@ void loop()
   // goToPositions();
 
   remoteControl.checkRemoteButtons();
+
+  // motor.setEffort(200);
 
 }
 
