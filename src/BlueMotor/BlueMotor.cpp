@@ -104,14 +104,23 @@ void BlueMotor::setEffortWithoutDB(int effort) {
     setEffort(effort);
 }
 
+bool BlueMotor::getToggleOff() {
+    return toggleOff;
+}
+
+void BlueMotor::setToggleOff(bool toggle) {
+    toggleOff = toggle;
+    Serial.println(getToggleOff());
+}
+
 void BlueMotor::moveTo(long target)  //Move to this encoder position within the specified
 {                                    //tolerance in the header file using proportional control
                                      //then stop
-    float pVal = -1;
+    float pVal = 1;
     float startPosition = getPosition();
     // target = startPosition + target;
     float distanceToPosition = target - getPosition();
-    while(tolerance < abs(distanceToPosition)) {
+    if(tolerance < abs(distanceToPosition)) {
 
         distanceToPosition = target - getPosition();
         Serial.print("distance: ");
@@ -124,8 +133,8 @@ void BlueMotor::moveTo(long target)  //Move to this encoder position within the 
 
 
         setEffortWithoutDB(currentEffort);
-    }
-    setEffortWithoutDB(0);
+    } else toggleOff = true;
+    //setEffortWithoutDB(0);
 }
 
 

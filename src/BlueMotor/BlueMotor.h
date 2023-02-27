@@ -10,6 +10,8 @@ public:
     long getPosition();
     void reset();
     void setup();
+    bool getToggleOff();
+    void setToggleOff(bool toggle);
 
 private:
     void setEffort(int effort, bool clockwise);
@@ -21,4 +23,6 @@ private:
     const int AIN1 = 4;
     const int ENCA = 0;
     const int ENCB = 1;
+    bool toggleOff = false;
+
 };

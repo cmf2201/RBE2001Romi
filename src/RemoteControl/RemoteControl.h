@@ -19,6 +19,7 @@ class RemoteControl
         RemoteControl(uint8_t p) : pin(p) {};
         void setup();
         void test();
+        void toggleFunc(Func func);
         void toggleFunc(Func func, uint8_t remoteButton);
         void onPress(Func func, uint8_t remoteButton);
         void eStop(Func func, uint8_t remoteButton);
