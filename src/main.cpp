@@ -459,7 +459,12 @@ void closeGripper() {
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
 void takeOffHighPlate() {
-  motor.moveTo(firstSpot60deg);
+  if(motor.getToggleOff()) {
+    motor.moveTo(firstSpot60deg);
+  } else {
+    remoteControl.stopFunction(remote7);
+    motor.setToggleOff(true);
+  }
 }
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
@@ -491,6 +496,7 @@ void goToPositions() {
   }
 }
 
+
 // reset mode should be used to manually lower or change the linkage position to a zero value for the encoder
 void resetMode() {
   // if A button is pressed, go up
@@ -508,6 +514,10 @@ void resetMode() {
   if (!(buttonA.isPressed() || buttonB.isPressed() || buttonC.isPressed())) {
     motor.setEffort(0);
   }
+}
+
+void resetEncoder() {
+  motor.reset();
 }
 
 void setup()
@@ -542,7 +552,7 @@ void setup()
   remoteControl.onPress(closeGripper,remote1); //original: closeServo and openServo
   remoteControl.onPress(openGripper,remote2);
 
-  remoteControl.onPress(ultrasonicDistance, remote3);
+  remoteControl.onPress(resetEncoder, remote3);
 
   remoteControl.toggleFunc(takeOffHighPlate, remote7);
   remoteControl.onPress(takeOffLowPlate, remote8);
@@ -579,10 +589,6 @@ void loop()
   // goToPositions();
 
   remoteControl.checkRemoteButtons();
-  if (motor.getToggleOff() == true) {
-    remoteControl.toggleFunc(takeOffHighPlate);
-    motor.setToggleOff(false);
-  }
 
   // motor.setEffort(200);
 //

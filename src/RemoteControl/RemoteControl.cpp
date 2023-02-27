@@ -19,18 +19,6 @@ void RemoteControl::test() {
     Serial.println(pin);
 }
 
-// // Defines a function that should continuously run when the given button is pressed
-void RemoteControl::toggleFunc(Func func, uint8_t remoteButton) {
-    if(currentFunctionCount >= maxNumberOfFunctions) { 
-        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
-        return;
-    }
-    functions[currentFunctionCount] = func;
-    remoteButtons[currentFunctionCount] = remoteButton;
-
-    currentFunctionCount--;
-}
-
 // Defines a function that should continuously run when the given button is pressed
 void RemoteControl::toggleFunc(Func func, uint8_t remoteButton) {
     if(currentFunctionCount >= maxNumberOfFunctions) { 
@@ -107,5 +95,13 @@ void RemoteControl::checkRemoteButtons() {
             }
         }
         
+    }
+}
+
+void RemoteControl::stopFunction(uint8_t remoteButton) {
+    for(int i = 0; i < currentFunctionCount; i++) {
+        if(remoteButton == remoteButtons[i]) {
+            activeFunctions[i] = false;
+        }
     }
 }

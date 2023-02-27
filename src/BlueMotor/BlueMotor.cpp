@@ -110,7 +110,7 @@ bool BlueMotor::getToggleOff() {
 
 void BlueMotor::setToggleOff(bool toggle) {
     toggleOff = toggle;
-    Serial.println(getToggleOff());
+    Serial.println(toggleOff);
 }
 
 void BlueMotor::moveTo(long target)  //Move to this encoder position within the specified
@@ -133,7 +133,10 @@ void BlueMotor::moveTo(long target)  //Move to this encoder position within the 
 
 
         setEffortWithoutDB(currentEffort);
-    } else toggleOff = true;
+    } else {
+        toggleOff = false;
+        setEffortWithoutDB(0);
+    } 
     //setEffortWithoutDB(0);
 }
 

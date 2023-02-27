@@ -23,6 +23,6 @@ private:
     const int AIN1 = 4;
     const int ENCA = 0;
     const int ENCB = 1;
-    bool toggleOff = false;
+    bool toggleOff = true;
 
 };
