@@ -45,6 +45,7 @@ int jawClosedPotVoltageADC = 530;
 int previous1PotVoltage = 0;
 int previous2PotVoltage = 0;
 Timer printTimer(printDelay);
+bool servoToggle = true;
 
 
 // Gripper Servo Definitions
@@ -72,7 +73,7 @@ bool servostop = true;
 
 
 //motor positions
-int firstSpot45deg = 3843;
+int firstSpot45deg = 3236;
 int secondSpot45deg = 4476;
 int firstSpot60deg = 8150;
 int secondSpot60deg = 7298;
@@ -105,6 +106,7 @@ void moveDown(void);
 
 void stopIt() {
   Serial.println("ESTOP");
+  Serial.println(motor.getPosition());
   motor.setEffort(0);
   gripperServo.writeMicroseconds(0);
   chassis.setMotorEfforts(0,0);
@@ -350,99 +352,36 @@ void bottomOutGripper() {
 }
 
 // Allows testing of Linear Gripper functionality, stopping and opening if servo is stuck, and closing onto plate on B press.
-void linearGripper() {
-  // Stop servo
-  jawServo.writeMicroseconds(servoStop);
-  delay(2000);
+void openGripper() {
   // Get Pot Value
   linearPotVoltageADC = analogRead(linearPotPin);
   Serial.print("Initial linearPotVoltageADC:   ");
-  Serial.println(linearPotVoltageADC);
-
-  while (buttonB.isPressed())
-  {
-  
+  Serial.println(linearPotVoltageADC);  
     // Move Jaw Down
     jawServo.writeMicroseconds(servoJawDown);
-    previous1PotVoltage = 0;
 
-    while (linearPotVoltageADC < jawOpenPotVoltageADC)
+    if (linearPotVoltageADC < jawOpenPotVoltageADC)
     {
       linearPotVoltageADC = analogRead(linearPotPin);
       if (printTimer.isExpired()){
         Serial.print("linearPotVoltageADC:    ");
         Serial.println(linearPotVoltageADC);
       }
-    }
-
+    } else {
     // Stop servo onced jaw is opened
     jawServo.writeMicroseconds(servoStop);
-
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Bottom linearPotVoltageADC Before Delay:    ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Bottom linearPotVoltageADC After Delay:     ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-
-
-    // Move Jaw Up
-    jawServo.writeMicroseconds(servoJawUp);
-
-    while (linearPotVoltageADC > jawClosedPotVoltageADC)
-    {    
-      linearPotVoltageADC = analogRead(linearPotPin);
-      
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:     ");
-        Serial.println(linearPotVoltageADC);
-       }
-    
+    remoteControl.stopFunction(remote2);
     }
-  
-    // Stop servo onced jaw is closed
-    jawServo.writeMicroseconds(servoStop);
-
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Final linearPotVoltageADC Before Delay:      ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Final linearPotVoltageADC After Delay:      ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-  
-  }
-  
-  // Stop servo
-  jawServo.writeMicroseconds(servoStop);
-}
-
-void openGripper() {
-    // Move Jaw Down
-    jawServo.writeMicroseconds(servoJawDown);
-
-    while (linearPotVoltageADC < jawOpenPotVoltageADC)
-    {
-      linearPotVoltageADC = analogRead(linearPotPin);
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:    ");
-        Serial.println(linearPotVoltageADC);
-      }
-    }
-        // Stop servo onced jaw is closed
-    jawServo.writeMicroseconds(servoStop);
 }
 
 void closeGripper() {
+    linearPotVoltageADC = analogRead(linearPotPin);
+  Serial.print("Initial linearPotVoltageADC:   ");
+  Serial.println(linearPotVoltageADC); 
+      // // Move Jaw Up
+     jawServo.writeMicroseconds(servoJawUp);
 
-
-      // Move Jaw Up
-    jawServo.writeMicroseconds(servoJawUp);
-
-    while (linearPotVoltageADC > jawClosedPotVoltageADC)
+    if (linearPotVoltageADC > jawClosedPotVoltageADC)
     {    
       linearPotVoltageADC = analogRead(linearPotPin);
       
@@ -451,10 +390,11 @@ void closeGripper() {
         Serial.println(linearPotVoltageADC);
        }
     
-    }
-  
-    // Stop servo onced jaw is closed
+    } else {
+    // Stop servo onced jaw is vlosed
     jawServo.writeMicroseconds(servoStop);
+    remoteControl.stopFunction(remote1);
+    }
 }
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
@@ -469,11 +409,12 @@ void takeOffHighPlate() {
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
 void takeOffLowPlate() {
-  delay(1000);
-  motor.moveTo(firstSpot45deg);
-  delay(3000);
-  motor.moveTo(secondSpot45deg);
-  delay(3000);
+  if(motor.getToggleOff()) {
+    motor.moveTo(firstSpot45deg);
+  } else {
+    remoteControl.stopFunction(remote8);
+    motor.setToggleOff(true);
+  }
 }
 
 void goToPositions() {
@@ -549,13 +490,13 @@ void setup()
 
   remoteControl.eStop(stopIt,remote9);
 
-  remoteControl.onPress(closeGripper,remote1); //original: closeServo and openServo
-  remoteControl.onPress(openGripper,remote2);
+  remoteControl.toggleFunc(closeGripper,remote1); //original: closeServo and openServo
+  remoteControl.toggleFunc(openGripper,remote2);
 
   remoteControl.onPress(resetEncoder, remote3);
 
   remoteControl.toggleFunc(takeOffHighPlate, remote7);
-  remoteControl.onPress(takeOffLowPlate, remote8);
+  remoteControl.toggleFunc(takeOffLowPlate, remote8);
 
   remoteControl.onPress(lineFollowCalibration,remote4);
   remoteControl.toggleFunc(qtrReadings,remote6);
