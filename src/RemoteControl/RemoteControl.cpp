@@ -105,3 +105,10 @@ void RemoteControl::stopFunction(uint8_t remoteButton) {
         }
     }
 }
+void RemoteControl::startFunction(uint8_t remoteButton) {
+    for(int i = 0; i < currentFunctionCount; i++) {
+        if(remoteButton == remoteButtons[i]) {
+            activeFunctions[i] = true;
+        }
+    }
+}

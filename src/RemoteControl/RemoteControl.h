@@ -2,7 +2,7 @@
 
 class RemoteControl
 {
-    #define maxNumberOfFunctions 20
+    #define maxNumberOfFunctions 60
     private:
         typedef void (*Func)(void);
         Func functions[maxNumberOfFunctions];
@@ -26,6 +26,7 @@ class RemoteControl
         void remoteFunctions();
         void checkRemoteButtons();
         void stopFunction(uint8_t remoteButton);
+        void startFunction(uint8_t remoteButton);
 
 
 };
