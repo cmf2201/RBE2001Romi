@@ -26,6 +26,7 @@ class RemoteControl
         void remoteFunctions();
         void checkRemoteButtons();
         void stopFunction(uint8_t remoteButton);
+        void startFunction(uint8_t remoteButton);
 
 
 };

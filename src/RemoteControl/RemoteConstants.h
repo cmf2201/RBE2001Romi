@@ -32,3 +32,6 @@ const uint8_t remote6 = 0x16;
 const uint8_t remote7 = 0x18;
 const uint8_t remote8 = 0x19;
 const uint8_t remote9 = 0x1A;
+
+const uint8_t assistedLineFollowing = 0x69;
+const uint8_t turnLeft = 0x6A;

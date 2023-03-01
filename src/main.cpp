@@ -1,51 +1,64 @@
+// Written and executed by Team 17 ( --THE DREAM TEAM-- )
+
 #include <Arduino.h>
 #include <Romi32U4.h>
 #include "BlueMotor/BlueMotor.h"
 #include <servo32u4.h>
-#include "Timer.h"
-// #include "IRdecoder.h"
 #include "RemoteControl/RemoteConstants.h"
 #include "RemoteControl/RemoteControl.h"
 #include <QTRSensors.h>
 #include <Chassis.h>
+#include "constants.h"
+#include <HCSR04.h>
 
+byte triggerPin = 3;
+byte echoPin = 30;
+
+
+//BlueMotor Declarations
 BlueMotor motor;
+
+//ROMI buttons
 Romi32U4ButtonA buttonA;
 Romi32U4ButtonB buttonB;
 Romi32U4ButtonC buttonC;
 
+//Remote Control Declarations
 RemoteControl remoteControl(2);
 
-#define BOTTOM_OUT_GRIPPER true
-
+//Servo Declarations 
 Servo32U4Pin5 gripperServo;
-Servo32U4 jawServo;
 
+const byte servoAnalogSensor = A0;
 
+boolean bottomOutGripper = true;
+
+//Chassis Declarations
 Chassis chassis;
 
+int assistedLineFollowingTarget = 0;
 
-//QTR Sensors
+//QTR Sensors Declarations
 QTRSensors qtr;
 
 const uint8_t SensorCount = 2;
 uint16_t sensorValues[SensorCount];
 
+//Servo Declarations
+#define SERVO_STOP 0
+#define SERVO_JAW_DOWN 500
+#define SERVO_JAW_UP 2500
+
 
 //Linear Servo declarations
-int servoPin = 0;
 int linearPotPin = A0;
-int servoStop = 1490;  
-int servoJawDown = 500;  
-int servoJawUp = 2500;  
-int printDelay = 500;
+
+
 int linearPotVoltageADC = 500;
-int jawOpenPotVoltageADC = 750;
-int jawClosedPotVoltageADC = 530;
+int jawOpenPotVoltageADC = 490;
+int jawClosedPotVoltageADC = 1022;
 int previous1PotVoltage = 0;
 int previous2PotVoltage = 0;
-Timer printTimer(printDelay);
-
 
 // Gripper Servo Definitions
 // int servoPin = 12;
@@ -68,14 +81,11 @@ long servoPrevMS;
 long servoDebounce;
 long servoDelayTime = 1000;
 
-bool servostop = true;
-
+// 
 
 //motor positions
-int firstSpot45deg = 3843;
-int secondSpot45deg = 4476;
-int firstSpot60deg = 8150;
-int secondSpot60deg = 7298;
+int firstSpot = 8114;
+int secondSpot = 3970;
 
 long lastSampleTime = 0;
 bool deadBandTesting = false;
@@ -89,19 +99,85 @@ float CPR = 270;
 int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
-// Ultrasonic Sensor Variables 
-const byte ultrasonicTriggerPin = 3;
-const byte ultrasonicEchoPin = 30;
-int frontDistance = 0;
-long ultrasonicSignalDuration = 0;
-
 // Remote Testing Variables
 // IRDecoder decoder(13);
 
 bool paused = false;
 
-void moveUp(void);
-void moveDown(void);
+void moveUp();
+void moveDown();
+void closeServo();
+void openServo();
+void lineFollowCalibration();
+void lineFollowToPosition();
+void lineFollowToPositionBegin();
+void stopIt();
+void qtrReadings();
+void getChassisPosition();
+void lineFollowBack();
+void rotateLeft();
+void lineFollow(int eff);
+void lineFollowForward();
+
+float getUltrasonicDistance();
+
+
+
+
+
+void setup()
+{
+  //Start the serial monitor
+  Serial.begin(9600);
+
+  motor.setup();
+  motor.reset();
+
+  chassis.init();
+
+  HCSR04.begin(triggerPin, echoPin);
+
+  gripperServo.setMinMaxMicroseconds(0,2000);
+  gripperServo.writeMicroseconds(0);
+
+  qtr.setTypeAnalog();
+  qtr.setSensorPins((const uint8_t[]){A4, A3}, SensorCount);
+
+  remoteControl.setup();
+
+  remoteControl.toggleFunc(moveUp,remoteUp);
+  remoteControl.toggleFunc(moveDown,remoteDown);
+  remoteControl.onPress(lineFollowToPositionBegin,remote0);
+  remoteControl.toggleFunc(lineFollowToPosition,assistedLineFollowing);
+
+  remoteControl.toggleFunc(lineFollowBack,remote2);
+
+  remoteControl.onPress(getChassisPosition,remote8);
+  remoteControl.onPress(rotateLeft,turnLeft);
+
+  remoteControl.toggleFunc(lineFollowForward,remote3);
+  remoteControl.onPress(lineFollowCalibration,remote4);
+
+
+  remoteControl.eStop(stopIt,remoteEnterSave);
+
+  delay(4000);
+  Serial.println("READY!");
+
+  // remoteControl.runCurrentFunctions();
+}
+
+
+
+void moveUp() {
+  motor.setEffort(400);
+  Serial.println("UP");
+}
+
+void moveDown() {
+  motor.setEffort(-400);
+  Serial.println("DOWN");
+}
 
 void stopIt() {
   Serial.println("ESTOP");
@@ -110,38 +186,13 @@ void stopIt() {
   chassis.setMotorEfforts(0,0);
 }
 
-void printTest() {
-  Serial.print("AO: ");
-  Serial.println(analogRead(A0));
-  Serial.print("A2: ");
-  Serial.println(analogRead(A2));
-  Serial.print("A3: ");
-  Serial.println(analogRead(A3));
-  Serial.print("A4: ");
-  Serial.println(analogRead(A4));
-}
 
 void closeServo() {
-  Serial.println(analogRead(linearPotPin));
   gripperServo.writeMicroseconds(2000);
 }
 
 void openServo() {
-  Serial.println(analogRead(linearPotPin));
   gripperServo.writeMicroseconds(10);
-}
-
-
-void ultrasonicDistance() {
-  digitalWrite(ultrasonicTriggerPin, LOW); // Clear ultrasonic trigger pin
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, HIGH); // Outputs signal 
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, LOW); // Stops outputting signals
-  ultrasonicSignalDuration = pulseIn(ultrasonicEchoPin, HIGH); 
-  frontDistance = ultrasonicSignalDuration*0.034/2; // (time) * (speed of sound) / 2 (sending then receiving)
-  Serial.print("Distance: ");
-  Serial.println(frontDistance);
 }
 
 void lineFollowCalibration() {
@@ -169,6 +220,19 @@ void lineFollowCalibration() {
   Serial.println();
 }
 
+//line follow until the given position is reached (in inches)
+void lineFollowToPositionBegin() {
+  chassis.driveFor(70.0,5.0);
+  // remoteControl.startFunction(assistedLineFollowing);
+}
+
+//line follow until the given position is reach (in inches)
+void lineFollowToPosition() {
+  // Serial.println("TEST ON");
+  // lineFollowing();
+}
+
+
 void qtrReadings() {
   // read calibrated sensor values and obtain a measure of the line position
   // from 0 to 5000 (for a white line, use readLineWhite() instead)
@@ -190,92 +254,50 @@ void qtrReadings() {
 
 }
 
-
-void lineFollowing() {
+//function for line following forward or backward
+void lineFollow(int eff) {
   uint16_t position = qtr.readLineBlack(sensorValues);
   if(position > 700) {
-    Serial.println("FAR RIGHT");
-    chassis.setMotorEfforts(100,80);
+    chassis.setMotorEfforts(eff,eff*.8);
   } else if (position < 300) {
-    Serial.println("FAR LEFT");
-    chassis.setMotorEfforts(80,100);
+    chassis.setMotorEfforts(eff*.8,eff);
   } else {
-    chassis.setMotorEfforts(100,100);
+    chassis.setMotorEfforts(eff,eff);
   }
 }
 
-
-
-void moveUp() {
-  motor.setEffort(400);
-  Serial.println("UP");
-  Serial.println(motor.getPosition());
+// Use the QTR sensors to have the ROMI follow a line
+void lineFollowForward() {
+  lineFollow(-80);
 }
 
-void moveDown() {
-  motor.setEffort(-400);
-  Serial.println("DOWN");
-  Serial.println(motor.getPosition());
-}
+void lineFollowBack() {
+  float distanceUlt = getUltrasonicDistance();
+  Serial.println(distanceUlt);
+  if(distanceUlt < 32.00) {
 
-
-
-
-// return the current RPM of the motor.
-float getRPM() {
-  now = millis();
-  newPosition = motor.getPosition();
-  speedInRPM = ((newPosition - oldPosition) / CPR) / ((float)(now - lastSampleTime) / 60000.0);
-  lastSampleTime = millis();
-  oldPosition = motor.getPosition();
-  return speedInRPM;
-}
-
-
-//contains all functions that have to do with deadband for Lab 4
-void deadbandFunctions(bool SerialReadings) {
- //while Button A is held, run the deadband Testing cycle. stop the motor otherwise.
-  if(buttonA.isPressed()) {
-    //while currentEffort is below max, print current effort + position
-    if(deadBandCurrentEffort <= motorEffort) {
-      if(SerialReadings) {
-      Serial.print(millis());
-      Serial.print(",");
-      Serial.print(deadBandCurrentEffort);
-      Serial.print(",");
-      if(deadBandCurrentEffort < 0) {
-        Serial.print(map(deadBandCurrentEffort,0,-400,-300,-400));
-      } else {
-        Serial.print(map(deadBandCurrentEffort,0,400,300,400));
-      }
-      Serial.print(",");
-      Serial.println(getRPM()); 
-      }
-      motor.setEffortWithoutDB(deadBandCurrentEffort);
-      delay(15);
-      deadBandCurrentEffort++;
-
-      //if cycle finishes, stop motor and print finish to Monitor
-    } else if (deadBandCurrentEffort == motorEffort+1) {
-      if(SerialReadings) {Serial.print("Finish!");}
-      // motor.setEffort(0);
-      deadBandCurrentEffort++;
-    }
-
+    chassis.setWheelSpeeds(-5.00,-5.00);
   } else {
-    deadBandCurrentEffort = 0;
+    chassis.idle();
+    remoteControl.stopFunction(remote2);
+    remoteControl.startFunction(turnLeft);
   }
+}
 
-  // when button B is pressed, move the motor backwards
-  if (buttonC.isPressed()) {
-    motor.setEffort(-motorEffort);
-    Serial.println("TRYING");
-  }
+void rotateLeft() {
+  chassis.turnFor(90,90.0);
+}
 
-  // if neither button is being pressed, stop motor
-  if (!(buttonA.isPressed() || buttonC.isPressed())) {
-    motor.setEffort(0);
-  }
+
+
+void getChassisPosition() {
+  chassis.printEncoderCounts();
+}
+
+float getUltrasonicDistance() {
+  double* distances = HCSR04.measureDistanceCm();
+
+  return distances[0];
 }
 
 //  Make sure the Battery Voltage has not dropped to low (below 6000)
@@ -288,310 +310,30 @@ void batteryCheck() {
   }
 }
 
-//opens the bottom out gripper
-void openBottomGripper() {
-  if(servoActive) {
-    int servoCurrentPosition = analogRead(servoEnc);
-    Serial.println(servoCurrentPosition);
-    gripperServo.writeMicroseconds(servoOpenedPositionMS);
-    servoActive = false;
-    Serial.println("OPENING");
-  }
-}
 
-//closes the bottom out gripper, but stops if the gripper cannot close
-void closeBottomGripper() {
-  if(servoActive) {
-    int servoCurrentPosition = analogRead(servoEnc);
-    Serial.println(servoCurrentPosition);
-
-    // every (servoReadingDelay) ms, try to move the gripper
-    if(millis() > servoPrevMS + servoReadingDelay) {
-      gripperServo.writeMicroseconds(servoClosedPositionMS);
-
-      //check if the servo is getting stuck. If so, open the Bottom Gripper.
-      if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
-        //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
-        if(servoStillCount >= 15) {
-          Serial.println("STUCK!");
-          openBottomGripper();
-        }
-        servoStillCount++;
-        
-      } else {
-        servoStillCount = 0;
-      }
-
-      //if Gripper has reached target position, finish movement
-      if(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance) {
-        Serial.println("FINISHED!");
-        servoActive = false;
-      }
-
-      servoPrevReading = servoCurrentPosition;
-      servoPrevMS = millis();
-    }
-  }
-
-}
-
-//runs through the bottom out gripper functions 
-void bottomOutGripper() {
-  if(buttonA.isPressed()) {
-    servoActive = true;
-    delay(1000);
-  }
-  if(buttonB.isPressed()) {
-    closeBottomGripper();
-  }
-  if(buttonC.isPressed()){
-    openBottomGripper();
-  }
-}
-
-// Allows testing of Linear Gripper functionality, stopping and opening if servo is stuck, and closing onto plate on B press.
-void linearGripper() {
-  // Stop servo
-  jawServo.writeMicroseconds(servoStop);
-  delay(2000);
-  // Get Pot Value
-  linearPotVoltageADC = analogRead(linearPotPin);
-  Serial.print("Initial linearPotVoltageADC:   ");
-  Serial.println(linearPotVoltageADC);
-
-  while (buttonB.isPressed())
-  {
+// void checkRemote(){
+//   int16_t code = decoder.getKeyCode();
+//   switch (code)
+//   {
+//   case remotePlayPause:
+//     // resetMode();
+//    paused = true;
+//     break;
   
-    // Move Jaw Down
-    jawServo.writeMicroseconds(servoJawDown);
-    previous1PotVoltage = 0;
-
-    while (linearPotVoltageADC < jawOpenPotVoltageADC)
-    {
-      linearPotVoltageADC = analogRead(linearPotPin);
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:    ");
-        Serial.println(linearPotVoltageADC);
-      }
-    }
-
-    // Stop servo onced jaw is opened
-    jawServo.writeMicroseconds(servoStop);
-
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Bottom linearPotVoltageADC Before Delay:    ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Bottom linearPotVoltageADC After Delay:     ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-
-
-    // Move Jaw Up
-    jawServo.writeMicroseconds(servoJawUp);
-
-    while (linearPotVoltageADC > jawClosedPotVoltageADC)
-    {    
-      linearPotVoltageADC = analogRead(linearPotPin);
-      
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:     ");
-        Serial.println(linearPotVoltageADC);
-       }
-    
-    }
-  
-    // Stop servo onced jaw is closed
-    jawServo.writeMicroseconds(servoStop);
-
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Final linearPotVoltageADC Before Delay:      ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-    linearPotVoltageADC = analogRead(linearPotPin);
-    Serial.print("Final linearPotVoltageADC After Delay:      ");
-    Serial.println(linearPotVoltageADC);
-    delay(5000);
-  
-  }
-  
-  // Stop servo
-  jawServo.writeMicroseconds(servoStop);
-}
-
-void openGripper() {
-    // Move Jaw Down
-    jawServo.writeMicroseconds(servoJawDown);
-
-    while (linearPotVoltageADC < jawOpenPotVoltageADC)
-    {
-      linearPotVoltageADC = analogRead(linearPotPin);
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:    ");
-        Serial.println(linearPotVoltageADC);
-      }
-    }
-        // Stop servo onced jaw is closed
-    jawServo.writeMicroseconds(servoStop);
-}
-
-void closeGripper() {
-
-
-      // Move Jaw Up
-    jawServo.writeMicroseconds(servoJawUp);
-
-    while (linearPotVoltageADC > jawClosedPotVoltageADC)
-    {    
-      linearPotVoltageADC = analogRead(linearPotPin);
-      
-      if (printTimer.isExpired()){
-        Serial.print("linearPotVoltageADC:     ");
-        Serial.println(linearPotVoltageADC);
-       }
-    
-    }
-  
-    // Stop servo onced jaw is closed
-    jawServo.writeMicroseconds(servoStop);
-}
-
-// Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
-void takeOffHighPlate() {
-  if(motor.getToggleOff()) {
-    motor.moveTo(firstSpot60deg);
-  } else {
-    remoteControl.stopFunction(remote7);
-    motor.setToggleOff(true);
-  }
-}
-
-// Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
-void takeOffLowPlate() {
-  delay(1000);
-  motor.moveTo(firstSpot45deg);
-  delay(3000);
-  motor.moveTo(secondSpot45deg);
-  delay(3000);
-}
-
-void goToPositions() {
-  // if A button is pressed, go to encoded 0 position, also the position at which the plate is grabbed off the block
-  if(buttonA.isPressed()) {
-
-    motor.moveTo(0);
-  }
-  //if B is presssed, go to hight plate position
-  if(buttonB.isPressed()) {
-
-    takeOffHighPlate();
-
-    
-  }
-
-  //if C is pressed, go to low plate position
-  if(buttonC.isPressed()) {
-    takeOffLowPlate();
-  }
-}
-
-
-// reset mode should be used to manually lower or change the linkage position to a zero value for the encoder
-void resetMode() {
-  // if A button is pressed, go up
-  if(buttonA.isPressed()) {
-    motor.setEffort(400);
-  }
-  //if B is presssed, go down
-  if(buttonB.isPressed()) {
-    motor.setEffort(-400);
-
-    
-  }
-
-  // if neither button is being pressed, stop motor
-  if (!(buttonA.isPressed() || buttonB.isPressed() || buttonC.isPressed())) {
-    motor.setEffort(0);
-  }
-}
-
-void resetEncoder() {
-  motor.reset();
-}
-
-void setup()
-{
-  //Start the serial monitor
-  Serial.begin(9600);
-
-  motor.setup();
-  motor.reset();
-
-  chassis.init();
-
-  gripperServo.setMinMaxMicroseconds(0,2000);
-  gripperServo.writeMicroseconds(0);
-
-  qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){A4, A3}, SensorCount);
-
-  pinMode(ultrasonicEchoPin,INPUT); 
-  pinMode(ultrasonicTriggerPin, OUTPUT);
-
-  remoteControl.setup();
-
-  remoteControl.onPress(moveUp,remoteUp);
-  remoteControl.onPress(moveDown,remoteDown);
-
-  remoteControl.onPress(stopIt,remoteEnterSave);
-  remoteControl.onPress(printTest,remote0);
-
-  remoteControl.eStop(stopIt,remote9);
-
-  remoteControl.onPress(closeGripper,remote1); //original: closeServo and openServo
-  remoteControl.onPress(openGripper,remote2);
-
-  remoteControl.onPress(resetEncoder, remote3);
-
-  remoteControl.toggleFunc(takeOffHighPlate, remote7);
-  remoteControl.onPress(takeOffLowPlate, remote8);
-
-  remoteControl.onPress(lineFollowCalibration,remote4);
-  remoteControl.toggleFunc(qtrReadings,remote6);
-  remoteControl.toggleFunc(lineFollowing,remote5);
-
-  delay(4000);
-  Serial.println("READY!");
-
-  // remoteControl.runCurrentFunctions();
-}
-
+//   case remoteVolPlus:
+//     paused = false;
+//     break;
+//   }
+//   Serial.println(paused);
+// }
 
 void loop()
 {
-  // check the battery
-    // batteryCheck();
-
-  // Code to test Remote
-    // checkRemote();  
-
-  // Reset mode for troubleshooting
-    // resetMode();
-
-  // Enters linear gripper mode to test and use linear gripper functionality
-  // linearGripper();
-
-  // run through deadBandFunctions
-  // deadbandFunctions(true);
-
-  // positional code
-  // goToPositions();
+  //check the battery
+  batteryCheck();
 
   remoteControl.checkRemoteButtons();
 
-  // motor.setEffort(200);
-//
 }
 
 

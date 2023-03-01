@@ -66,14 +66,14 @@ void RemoteControl::checkRemoteButtons() {
     if(!eStopped) {
         for(int i = 0; i < currentFunctionCount; i++) {
             if(code == remoteButtons[i]) {
-                if(runOnce[i]){
+                if(eStopIndex == i) {
+                    Serial.println("ESTOP ENABLED");
+                    eStopped = true;
                     functions[i]();
-                    if(eStopIndex == i) {
-                        Serial.println("ESTOP ENABLED");
-                        eStopped = true;
-                        for(int i2 = 0; i2 < currentFunctionCount; i2++) {
-                            activeFunctions[i2] = false;
-                        }
+                    for(int i2 = 0; i2 < currentFunctionCount; i2++) {
+                        Serial.print("DISABLING: ");
+                        Serial.println(i2);
+                        activeFunctions[i2] = false;
                     }
                 } else {
                     activeFunctions[i] = !activeFunctions[i];
@@ -81,7 +81,10 @@ void RemoteControl::checkRemoteButtons() {
             }
 
             if(activeFunctions[i]) {
-                functions[i]();         
+                if(runOnce[i]){ 
+                    activeFunctions[i] = false;
+                }
+                functions[i]();       
             }
         }
     } else {
@@ -102,6 +105,15 @@ void RemoteControl::stopFunction(uint8_t remoteButton) {
     for(int i = 0; i < currentFunctionCount; i++) {
         if(remoteButton == remoteButtons[i]) {
             activeFunctions[i] = false;
+        }
+    }
+}
+
+
+void RemoteControl::startFunction(uint8_t remoteButton) {
+    for(int i = 0; i < currentFunctionCount; i++) {
+        if(remoteButton == remoteButtons[i]) {
+            activeFunctions[i] = true;
         }
     }
 }
