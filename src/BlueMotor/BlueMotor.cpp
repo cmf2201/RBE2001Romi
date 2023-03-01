@@ -122,14 +122,14 @@ void BlueMotor::moveTo(long target)  //Move to this encoder position within the 
     float distanceToPosition = target - getPosition();
     if(tolerance < abs(distanceToPosition)) {
 
-        distanceToPosition = target - getPosition();
-        // Serial.print("distance: ");
-        // Serial.print(distanceToPosition);
-        int currentEffort = pVal * distanceToPosition;
-        // Serial.print(" effort: ");
-        // Serial.print(currentEffort);
-        // Serial.print(" Position: ");
-        // Serial.println(getPosition());
+         distanceToPosition = target - getPosition();
+        //  Serial.print("distance: ");
+        //  Serial.print(distanceToPosition);
+         int currentEffort = pVal * distanceToPosition;
+        //  Serial.print(" effort: ");
+        //  Serial.print(currentEffort);
+        //  Serial.print(" Position: ");
+        //  Serial.println(getPosition());
 
 
         setEffortWithoutDB(currentEffort);

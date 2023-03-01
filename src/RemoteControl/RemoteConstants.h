@@ -44,4 +44,5 @@ const uint8_t lowerSlightlyConst = 0x23;
 const uint8_t calebFunctionConst = 0x24;
 const uint8_t rotateLeftUntilLineConst = 0x25;
 const uint8_t rotateRightUntilLineConst = 0x26;
-
+const uint8_t forwardUntilLineConst = 0x27;
+const uint8_t forwardFunctConst = 0x28;
