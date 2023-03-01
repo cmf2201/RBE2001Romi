@@ -5,6 +5,9 @@
 // QTR Sensors
 QTRSensors qtr;
 
+#define lineFollowCaliLow 550
+#define lineFollowCaliHigh 900
+
 const uint8_t SensorCount = 2;
 uint16_t sensorValues[SensorCount];
 
@@ -62,6 +65,9 @@ float CPR = 270;
 int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
+
+int previousMotorPosition = 0;
+
 // Ultrasonic Sensor Variables
 const byte ultrasonicTriggerPin = 3;
 const byte ultrasonicEchoPin = 30;
@@ -69,8 +75,8 @@ int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
 int towerDistanceOne = 9;
 int towerDistanceTwo = 1;
-int blockDistanceOne = 4;
-int blockDistanceTwo = 4;
+int blockDistanceOne = 3;
+int blockDistanceTwo = 3;
 
 // Remote Testing Variables
 
