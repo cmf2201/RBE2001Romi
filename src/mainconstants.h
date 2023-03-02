@@ -7,6 +7,7 @@ QTRSensors qtr;
 
 #define lineFollowCaliLow 550
 #define lineFollowCaliHigh 900
+bool BOTTOM_OUT_GRIPPER = true;
 
 const uint8_t SensorCount = 2;
 uint16_t sensorValues[SensorCount];
@@ -20,7 +21,7 @@ int servoJawUp = 2500;
 int printDelay = 500;
 int linearPotVoltageADC = 500;
 int jawOpenPotVoltageADC = 1000;
-int jawClosedPotVoltageADC = 500;
+int jawClosedPotVoltageADC = 450;
 int previous1PotVoltage = 0;
 int previous2PotVoltage = 0;
 Timer printTimer(printDelay);
@@ -50,7 +51,7 @@ long servoDelayTime = 1000;
 bool servostop = true;
 
 // motor positions
-int firstSpot45deg = 3194;
+int firstSpot45deg = 3350;
 int firstSpot60deg = 7284;
 
 long lastSampleTime = 0;
@@ -73,7 +74,7 @@ const byte ultrasonicTriggerPin = 3;
 const byte ultrasonicEchoPin = 30;
 int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
-int towerDistanceOne = 9;
+int towerDistanceOne = 8;
 int towerDistanceTwo = 1;
 int blockDistanceOne = 3;
 int blockDistanceTwo = 3;

@@ -52,6 +52,11 @@ void RemoteControl::eStop(Func func, uint8_t remoteButton) {
     onPress(func,remoteButton);
 }
 
+void RemoteControl::ePause(Func func, uint8_t remoteButton) {
+    ePauseIndex = currentFunctionCount;
+    onPress(func, remoteButton);
+}
+
 //run all defined functions so far
 void RemoteControl::runCurrentFunctions() {
     for(int i = 0; i < currentFunctionCount; i++) {
@@ -63,11 +68,10 @@ void RemoteControl::runCurrentFunctions() {
 //check if the remote is being pressed for any functions, and runs functions that are active
 void RemoteControl::checkRemoteButtons() {
     int16_t code = decoder.getKeyCode();
-    if(!eStopped) {
+    if(!(eStopped || ePaused)) {
         for(int i = 0; i < currentFunctionCount; i++) {
             if(code == remoteButtons[i]) {
                 if(runOnce[i]){
-                    functions[i]();
                     if(eStopIndex == i) {
                         Serial.println("ESTOP ENABLED");
                         eStopped = true;
@@ -75,6 +79,11 @@ void RemoteControl::checkRemoteButtons() {
                             activeFunctions[i2] = false;
                         }
                     }
+                    if(ePauseIndex == i) {
+                        Serial.println("EPAUSE ENABLED");
+                        ePaused = true;
+                    }
+                    functions[i]();
                 } else {
                     activeFunctions[i] = !activeFunctions[i];
                 }
@@ -89,10 +98,9 @@ void RemoteControl::checkRemoteButtons() {
             Serial.println("ESTOP DISABLED");
             eStopped = false;
         }
-        for(int i = 0; i < currentFunctionCount; i++) {
-            if(activeFunctions[i]) {
-                Serial.println("ERROR");       
-            }
+        if(code == remoteButtons[ePauseIndex]) {
+            Serial.println("EPAUSE DISABLED");
+            ePaused = false;
         }
         
     }
