@@ -1061,9 +1061,6 @@ void setup()
   // remoteControl.toggleFunc(fourBarLow, remoteVolMinus);
   remoteControl.onPress(stopIt, remoteVolPlus);
 
-  remoteControl.onPress(replaceRobotFourty, remoteSetup);
-  remoteControl.onPress(replaceRobotSixty, remoteStopMode);
-
   remoteControl.onPress(updateCurrentState, remoteEnterSave);
 
   remoteControl.onPress(ultrasonicDistanceTest, remote0);
