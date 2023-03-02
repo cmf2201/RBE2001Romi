@@ -33,10 +33,10 @@ int servoEnc = A0;
 
 bool servoActive = false;
 
-int servoClosedPositionMS = 1250;
-int servoClosedPositionAR = 246;
-int servoOpenedPositionMS = 10;
-int servoOpenedPositionAR = 137;
+int servoClosedPositionMS = 2000;
+int servoClosedPositionAR = 390;
+int servoOpenedPositionMS = 1000;
+int servoOpenedPositionAR = 205;
 
 int servoStuckTolerance = 4;
 int servoCloseTolerance = 5;
@@ -51,8 +51,8 @@ long servoDelayTime = 1000;
 bool servostop = true;
 
 // motor positions
-int firstSpot45deg = 3350;
-int firstSpot60deg = 7284;
+int firstSpot45deg = 3472;
+int firstSpot60deg = 8500;
 
 long lastSampleTime = 0;
 bool deadBandTesting = false;
@@ -74,10 +74,10 @@ const byte ultrasonicTriggerPin = 3;
 const byte ultrasonicEchoPin = 30;
 int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
-int towerDistanceOne = 8;
+int towerDistanceOne = 9;
 int towerDistanceTwo = 1;
-int blockDistanceOne = 3;
-int blockDistanceTwo = 3;
+int blockDistanceOne = 2;
+int blockDistanceTwo = 2;
 
 // Remote Testing Variables
 
