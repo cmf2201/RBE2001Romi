@@ -340,28 +340,72 @@ void deadbandFunctions(bool SerialReadings)
   }
 }
 
-void openGripper()
-{
-  // Get Pot Value
-  linearPotVoltageADC = analogRead(linearPotPin);
-  // Serial.print("Initial linearPotVoltageADC:   ");
-  // Serial.println(linearPotVoltageADC);
-  // Move Jaw Down
-  jawServo.writeMicroseconds(servoJawDown);
-
-  if (linearPotVoltageADC < jawOpenPotVoltageADC)
-  {
-    linearPotVoltageADC = analogRead(linearPotPin);
-    if (printTimer.isExpired())
-    {
-      // Serial.print("linearPotVoltageADC:    ");
-      // Serial.println(linearPotVoltageADC);
+//opens the bottom out gripper
+void openBottomGripper() {
+  if(servoActive) {
+    int servoCurrentPosition = analogRead(servoEnc);
+    Serial.println(servoCurrentPosition);
+    if(servoCurrentPosition > servoOpenedPositionAR) {
+      Serial.println(servoCurrentPosition);
+      gripperServo.writeMicroseconds(servoOpenedPositionMS);
+      Serial.println("OPENING");
+      servoCurrentPosition = analogRead(servoEnc);
+    } else {
+      servoActive = false;
+      Serial.println("FINISHED!");
+      remoteControl.stopFunction(remote2);
     }
   }
-  else
-  {
+}
+
+//closes the bottom out gripper, but stops if the gripper cannot close
+void closeBottomGripper() {
+    int servoCurrentPosition = analogRead(servoEnc);
+    Serial.println(servoCurrentPosition);
+
+    // every (servoReadingDelay) ms, try to move the gripper
+    if(millis() > servoPrevMS + servoReadingDelay) {
+      gripperServo.writeMicroseconds(servoClosedPositionMS);
+
+      //check if the servo is getting stuck. If so, open the Bottom Gripper.
+      if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
+        //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
+        if(servoStillCount >= 15) {
+          Serial.println("STUCK!");
+          openBottomGripper();
+          remoteControl.stopFunction(remote1);
+        }
+        servoStillCount++;
+        
+      } else {
+        servoStillCount = 0;
+      }
+
+      //if Gripper has reached target position, finish movement
+      if(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance) {
+        Serial.println("FINISHED!");
+        servoActive = false;
+        remoteControl.stopFunction(remote1);
+      }
+
+      servoPrevReading = servoCurrentPosition;
+      servoPrevMS = millis();
+    }
+  
+
+}
+
+void openGripper()
+{
+  int servoCurrentPosition = analogRead(servoEnc);
+  Serial.println(servoCurrentPosition);
+  if(servoCurrentPosition > servoOpenedPositionAR) {
+    Serial.println(servoCurrentPosition);
+    gripperServo.writeMicroseconds(servoOpenedPositionMS);
+    Serial.println("OPENING");
+  } else {
+    Serial.println("FINISHED!");
     // Stop servo onced jaw is opened
-    jawServo.writeMicroseconds(servoStop);
     remoteControl.stopFunction(openGripperConst);
     remoteControl.stopFunction(remoteLeft);
     switch (currentState)
@@ -395,55 +439,68 @@ void openGripper()
 
 void closeGripper()
 {
-  linearPotVoltageADC = analogRead(linearPotPin);
-  // Serial.print("Initial linearPotVoltageADC:   ");
-  // Serial.println(linearPotVoltageADC);
-  // // Move Jaw Up
-  jawServo.writeMicroseconds(servoJawUp);
+    int servoCurrentPosition = analogRead(servoEnc);
+    Serial.println(servoCurrentPosition);
+    if(!(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance)) {
+      // every (servoReadingDelay) ms, try to move the gripper
+      if(millis() > servoPrevMS + servoReadingDelay) {
+        gripperServo.writeMicroseconds(servoClosedPositionMS);
 
-  if (linearPotVoltageADC > jawClosedPotVoltageADC)
-  {
-    linearPotVoltageADC = analogRead(linearPotPin);
+        //check if the servo is getting stuck. If so, open the Bottom Gripper.
+        if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
+          //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
+          if(servoStillCount >= 15) {
+            Serial.println("STUCK!");
+            openGripper();
+            remoteControl.stopFunction(closeGripperConst);
+            remoteControl.stopFunction(remoteRight);
+          }
+          servoStillCount++;
+          
+        } else {
+          servoStillCount = 0;
+        }
 
-    if (printTimer.isExpired())
-    {
-      //     Serial.print("linearPotVoltageADC:     ");
-      //      Serial.println(linearPotVoltageADC);
+        //if Gripper has reached target position, finish movement
+        
+
+        servoPrevReading = servoCurrentPosition;
+        servoPrevMS = millis();
+      } 
+
+    }else {
+      // Stop servo onced jaw is vlosed
+      Serial.println("FINISHED");
+      remoteControl.stopFunction(closeGripperConst);
+      remoteControl.stopFunction(remoteRight);
+      switch (currentState)
+      {
+      case confirmedFourtyFiveTower:
+        currentState = raiseSlightlyFourtyFiveTower;
+        Serial.println(currentState);
+        remoteControl.startFunction(raiseSlightlyConst);
+        break;
+
+      case confirmedSixtyTower:
+        currentState = raiseSlightlySixtyTower;
+        Serial.println(currentState);
+        remoteControl.startFunction(raiseSlightlyConst);
+        break;
+      case grabNewPlateFourtyFive:
+        currentState = backUpFourtyFiveAgain;
+        Serial.println(currentState);
+        remoteControl.startFunction(calebFunctionConst);
+        break;
+      case grabNewPlateSixty:
+        currentState = backUpSixtyAgain;
+        Serial.println(currentState);
+        remoteControl.startFunction(calebFunctionConst);
+        break;
+      default:
+        break;
+      }
     }
-  }
-  else
-  {
-    // Stop servo onced jaw is vlosed
-    jawServo.writeMicroseconds(servoStop);
-    remoteControl.stopFunction(closeGripperConst);
-    remoteControl.stopFunction(remoteRight);
-    switch (currentState)
-    {
-    case confirmedFourtyFiveTower:
-      currentState = raiseSlightlyFourtyFiveTower;
-      Serial.println(currentState);
-      remoteControl.startFunction(raiseSlightlyConst);
-      break;
 
-    case confirmedSixtyTower:
-      currentState = raiseSlightlySixtyTower;
-      Serial.println(currentState);
-      remoteControl.startFunction(raiseSlightlyConst);
-      break;
-    case grabNewPlateFourtyFive:
-      currentState = backUpFourtyFiveAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
-      break;
-    case grabNewPlateSixty:
-      currentState = backUpSixtyAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
-      break;
-    default:
-      break;
-    }
-  }
 }
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the 60 degree plate
@@ -964,30 +1021,6 @@ void forwardUntilLine()
   }
 }
 
-void replaceRobotFourty()
-{
-  if (GripperBool)
-  {
-    GripperBool = false;
-  }
-  else
-    GripperBool = true;
-  currentState = waitForRefereeForty;
-  Serial.println(currentState);
-}
-
-void replaceRobotSixty()
-{
-  if (GripperBool)
-  {
-    GripperBool = false;
-  }
-  else
-    GripperBool = true;
-  currentState = waitForRefereeSixty;
-  Serial.println(currentState);
-}
-
 void returnMotorPosition()
 {
   Serial.println(motor.getPosition());
@@ -1013,6 +1046,7 @@ void setup()
   // qtr.calibrationOn.minimum[0] = lineFollowCaliLow;
   // qtr.calibrationOn.maximum[0] = lineFollowCaliHigh;
 
+  pinMode(servoEnc,INPUT);
   pinMode(ultrasonicEchoPin, INPUT);
   pinMode(ultrasonicTriggerPin, OUTPUT);
 

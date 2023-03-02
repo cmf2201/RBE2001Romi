@@ -128,8 +128,8 @@ void BlueMotor::moveTo(long target)  //Move to this encoder position within the 
          int currentEffort = pVal * distanceToPosition;
         //  Serial.print(" effort: ");
         //  Serial.print(currentEffort);
-        //  Serial.print(" Position: ");
-        //  Serial.println(getPosition());
+         Serial.print(" Position: ");
+         Serial.println(getPosition());
 
 
         setEffortWithoutDB(currentEffort);

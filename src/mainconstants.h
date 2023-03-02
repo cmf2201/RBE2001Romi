@@ -11,6 +11,8 @@ QTRSensors qtr;
 const uint8_t SensorCount = 2;
 uint16_t sensorValues[SensorCount];
 
+bool BOTTOM_OUT_GRIPPER = true;
+
 // Linear Servo declarations
 int servoPin = 0;
 int linearPotPin = A0;
@@ -32,10 +34,10 @@ int servoEnc = A0;
 
 bool servoActive = false;
 
-int servoClosedPositionMS = 1250;
-int servoClosedPositionAR = 246;
-int servoOpenedPositionMS = 10;
-int servoOpenedPositionAR = 137;
+int servoClosedPositionMS = 2000;
+int servoClosedPositionAR = 390;
+int servoOpenedPositionMS = 1000;
+int servoOpenedPositionAR = 205;
 
 int servoStuckTolerance = 4;
 int servoCloseTolerance = 5;
@@ -50,8 +52,8 @@ long servoDelayTime = 1000;
 bool servostop = true;
 
 // motor positions
-int firstSpot45deg = 3194;
-int firstSpot60deg = 7284;
+int firstSpot45deg = 3472;
+int firstSpot60deg = 8500;
 
 long lastSampleTime = 0;
 bool deadBandTesting = false;
@@ -65,6 +67,9 @@ float CPR = 270;
 int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
+// motor positions for bottom out gripper robot
+int bottomOutSpot45 = 3472;
+int bottomOutSpot60 = 8500;
 
 int previousMotorPosition = 0;
 
