@@ -29,7 +29,7 @@ void stopIt()
   motor.setEffort(0);
   gripperServo.writeMicroseconds(0);
   chassis.setMotorEfforts(0, 0);
-  currentState = 0;
+ // currentState = 0;
   Serial.println(currentState);
 }
 
@@ -1157,6 +1157,8 @@ void setup()
   remoteControl.toggleFunc(forwardUntilLine, forwardUntilLineConst);
 
   remoteControl.toggleFunc(goToBottomEncoder, remoteVolMinus);
+
+  remoteControl.ePause(stopIt,remote8);
 
   delay(4000);
   Serial.println("READY!");
