@@ -120,3 +120,14 @@ void RemoteControl::startFunction(uint8_t remoteButton) {
         }
     }
 }
+
+void RemoteControl::startFunction(uint8_t remoteButton, int printIt = -1) {
+    for(int i = 0; i < currentFunctionCount; i++) {
+        if(remoteButton == remoteButtons[i]) {
+            activeFunctions[i] = true;
+        }
+        if(printIt != -1) {
+            Serial.println(printIt);
+        }
+    }
+}
