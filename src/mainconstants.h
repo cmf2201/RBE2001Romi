@@ -80,8 +80,8 @@ int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
 int towerDistanceOne = 9;
 int towerDistanceTwo = 1;
-int blockDistanceOne = 3;
-int blockDistanceTwo = 3;
+int blockDistanceOne = 2;
+int blockDistanceTwo = 2;
 
 // Remote Testing Variables
 
