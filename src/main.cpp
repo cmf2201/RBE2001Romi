@@ -255,7 +255,7 @@ if (ultrasonicDistance() <= 6 || ultrasonicDistance() >= 1000)
     chassis.setMotorEfforts(0, 0);
     currentState = forwardUntilLineSixty;
     Serial.println(currentState);
-    chassis.turnFor(90, 90, true);
+    chassis.turnFor(90, 90, false);
     remoteControl.startFunction(forwardUntilLineConst);
 
     }
@@ -948,53 +948,85 @@ void rotateLeftUntilLineFunct()
 
 void forwardUntilLine()
 {
-  chassis.driveFor(82, 10, true);
+  if (chassis.checkMotionComplete()) {
   switch (currentState)
   {
   case forwardUntilLineFourty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    currentState = rotateUntilLineAndReplaceFourty;
+     chassis.idle();
+     chassis.setMotorEfforts(50, 50);
+     Serial.println(qtr.readLineBlack(sensorValues));
+     if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300)
+    {
+    currentState = replaceStepOneFourty;
     Serial.println(currentState);
     chassis.idle();
+    }
+    //chassis.turnFor(-90, 90.0, false);
+    break;
+  case replaceStepOneFourty:
+    chassis.setMotorEfforts(70, 0);
+    Serial.println(qtr.readLineBlack(sensorValues));
+    if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300){
+      chassis.setMotorEfforts(0,0);
+      currentState = replaceStepTwoFourty;
+      Serial.println(currentState);
+    }
+  break;
+  case replaceStepTwoFourty:
+     chassis.idle();
+     chassis.setMotorEfforts(50, 50);
+        if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300)
+  {
+    currentState = replaceStepThreeFourty;
+    Serial.println(currentState);
     chassis.turnFor(-90, 90.0, true);
-    chassis.driveFor(20, 10, true);
-    chassis.turnFor(-90, 90.0, true);
+  }
+  break;
+  case replaceStepThreeFourty:
+    remoteControl.stopFunction(forwardUntilLineConst);
     remoteControl.startFunction(remote9);
     remoteControl.stopFunction(remote9);
     Serial.println("Replace Me with a New Robot Plz Master");
-    break;
-
+  break;
   case forwardUntilLineSixty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    currentState = rotateUntilLineAndReplaceSixty;
+    currentState = replaceStepOneSixty;
     Serial.println(currentState);
     chassis.idle();
-    chassis.turnFor(90, 90.0, true);
-    chassis.driveFor(23, 10, true);
-    chassis.turnFor(90, 90.0, true);
+    chassis.driveFor(82, 10, true);
+    chassis.turnFor(90, 90.0, false);
+    break;
+  case replaceStepOneSixty:
+    currentState = replaceStepTwoSixty;
+    Serial.println(currentState);
+    chassis.driveFor(20, 10, false);
+  break;
+  case replaceStepTwoSixty:
+    currentState = replaceStepThreeSixty;
+    Serial.println(currentState);
+    chassis.turnFor(90, 90.0, false);
+  break;
+  case replaceStepThreeSixty:
+    remoteControl.stopFunction(forwardUntilLineConst);
     remoteControl.startFunction(remote9);
     remoteControl.stopFunction(remote9);
     Serial.println("Replace Me with a New Robot Plz Master");
-    break;
+  break;
+  }
   }
 }
 
 void replaceRobotFourty()
 {
-  currentState = waitForRefereeForty;
-  motor.setEffort(400);
-  delay(230);
-  motor.setEffort(0);
+  currentState = forwardUntilTurnToLeaveFourty;
+  remoteControl.startFunction(lineFollowingConst);
   Serial.println(currentState);
 }
 
 void replaceRobotSixty()
 {
 
-  currentState = waitForRefereeSixty;
-  motor.setEffort(400);
-  delay(275);
-  motor.setEffort(0);
+  currentState = forwardUntilTurnToLeaveSixty;
+  remoteControl.startFunction(lineFollowingConst);
   Serial.println(currentState);
 }
 
