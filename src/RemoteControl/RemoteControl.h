@@ -22,11 +22,11 @@ class RemoteControl
         void toggleFunc(Func func, uint8_t remoteButton);
         void onPress(Func func, uint8_t remoteButton);
         void eStop(Func func, uint8_t remoteButton);
+        void ePause(Func func, uint8_t remoteButton);
         void runCurrentFunctions();
         void remoteFunctions();
         void checkRemoteButtons();
         void stopFunction(uint8_t remoteButton);
         void startFunction(uint8_t remoteButton);
-
 
 };
