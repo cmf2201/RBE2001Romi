@@ -727,7 +727,7 @@ void calebFunction()
   switch (currentState)
   {
   case CalebFunctionForty:
-    if (distanceUlt < 27 || distanceUlt > 100)
+    if (distanceUlt < wallToLineDist || distanceUlt > 100)
     {
       chassis.setWheelSpeeds(-5.00, -5.00);
     }
@@ -742,7 +742,7 @@ void calebFunction()
     }
     break;
   case CalebFunctionSixty:
-    if (distanceUlt < 27 || distanceUlt > 100)
+    if (distanceUlt < wallToLineDist || distanceUlt > 100)
     {
       chassis.setWheelSpeeds(-5.00, -5.00);
     }
@@ -757,7 +757,7 @@ void calebFunction()
     }
     break;
   case backUpFourtyFive:
-    if (distanceUlt < 15 || distanceUlt > 100)
+    if (distanceUlt < blockBackUpDist || distanceUlt > 100)
     {
      // Serial.println(ultrasonicDistance());
       chassis.setWheelSpeeds(-5.00, -5.00);
@@ -774,7 +774,7 @@ void calebFunction()
     }
     break;
   case backUpSixty:
-    if (distanceUlt < 15 || distanceUlt > 100)
+    if (distanceUlt < blockBackUpDist || distanceUlt > 100)
     {
     //  Serial.println(ultrasonicDistance());
       chassis.setWheelSpeeds(-5.00, -5.00);
