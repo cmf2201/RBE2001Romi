@@ -99,7 +99,56 @@ int currentState = 0;
 int PrevState = 0;
 bool GripperBool = true;
 
-// driveFor pausable funciton
+// driveFor / turnFor pausable funciton
 int startPositionLeft = 0;
 int startPositionRight = 0;
-bool motionIncomplete;
+bool driveMotionIncomplete;
+bool turnMotionIncomplete;
+
+int currentTarget;
+int currentSpeed;
+
+
+
+//function definitions (so they can be called anywhere)
+void stopIt();
+float ultrasonicDistance();
+void ultrasonicDistanceTest();
+void lineFollowCalibration();
+void lineFollowing();
+void driveFor();
+void turnFor();
+void linefollowTesting();
+void moveUp();
+void moveDown();
+void openBottomGripper();
+void closeBottomGripper();
+void openGripper();
+void closeGripper();
+void turnToPausableResume();
+void turnToPausableResume(float target, float speed);
+void turnToPausable(float target, float speed);
+void driveToPausableResume();
+void driveToPausableResume(float target, float speed);
+void driveToPausable(float target, float speed);
+void takeOffHighPlate();
+void takeOffLowPlate();
+void raiseSlightly();
+void lowerSlightly();
+void goToBottomEncoder();
+void fourBarLow();
+void resetEncoder();
+void fourtyFiveDegreeSide();
+void sixtyDegreeSide();
+void updateCurrentState();
+void calebFunction();
+void rotateUntilLine();
+void rotateRightUntilLine();
+void rotateLeftUntilLine();
+void forwardUntilLine();
+void returnMotorPosition();
+void driveToPausableTest();
+void driveToPausableTest2();
+void turnToPausableTest();
+void turnToPausableTest2();
+void unPause();

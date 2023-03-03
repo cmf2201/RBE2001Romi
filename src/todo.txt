@@ -1,0 +1,6 @@
+for the 60 side, adjust how far forward the robot needs to move
+
+for both sides, adjust how far the bot moves backward after grabbing
+    before using ultrasonic
+
+    

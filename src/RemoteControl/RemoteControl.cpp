@@ -98,7 +98,7 @@ void RemoteControl::checkRemoteButtons() {
         }
         if(code == remoteButtons[ePauseIndex]) {
             Serial.println("EPAUSE DISABLED");
-            functions[ePauseIndex]();
+            functions[eUnPauseIndex]();
             ePaused = false;
         }
         
