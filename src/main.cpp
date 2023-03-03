@@ -440,7 +440,7 @@ void openGripper()
 void closeGripper()
 {
     int servoCurrentPosition = analogRead(servoEnc);
-    Serial.println(servoCurrentPosition);
+    //Serial.println(servoCurrentPosition);
     if(!(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance)) {
       // every (servoReadingDelay) ms, try to move the gripper
       if(millis() > servoPrevMS + servoReadingDelay) {
@@ -479,21 +479,29 @@ void closeGripper()
         currentState = raiseSlightlyFourtyFiveTower;
         Serial.println(currentState);
         remoteControl.startFunction(raiseSlightlyConst);
+        remoteControl.stopFunction(closeGripperConst);
+        remoteControl.stopFunction(remoteRight);
         break;
 
       case confirmedSixtyTower:
         currentState = raiseSlightlySixtyTower;
         Serial.println(currentState);
+        remoteControl.stopFunction(closeGripperConst);
+        remoteControl.stopFunction(remoteRight);
         remoteControl.startFunction(raiseSlightlyConst);
         break;
       case grabNewPlateFourtyFive:
         currentState = backUpFourtyFiveAgain;
         Serial.println(currentState);
         remoteControl.startFunction(calebFunctionConst);
+        remoteControl.stopFunction(closeGripperConst);
+        remoteControl.stopFunction(remoteRight);
         break;
       case grabNewPlateSixty:
         currentState = backUpSixtyAgain;
         Serial.println(currentState);
+        remoteControl.stopFunction(closeGripperConst);
+        remoteControl.stopFunction(remoteRight);
         remoteControl.startFunction(calebFunctionConst);
         break;
       default:
@@ -579,7 +587,7 @@ void raiseSlightly()
       remoteControl.stopFunction(raiseSlightlyConst);
       motor.setToggleOff(true);
       currentState = CalebFunctionForty;
-      chassis.driveFor(-5, -5, true);
+      chassis.driveFor(-20, -10, true);
       Serial.println(currentState);
       remoteControl.startFunction(calebFunctionConst);
     }
@@ -596,7 +604,7 @@ void raiseSlightly()
       remoteControl.stopFunction(raiseSlightlyConst);
       currentState = CalebFunctionSixty;
       Serial.println(currentState);
-      chassis.driveFor(-5, -5, true);
+      chassis.driveFor(-20, -5, true);
       remoteControl.startFunction(calebFunctionConst);
     }
     break;
@@ -683,7 +691,7 @@ void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(450);
+    motor.moveTo(500);
   }
   else
   {
@@ -807,7 +815,7 @@ void calebFunction()
       currentState = rotateRightUntilLine;
       Serial.println(currentState);
       remoteControl.stopFunction(calebFunctionConst);
-      chassis.turnFor(-25, 90, true);
+      chassis.turnFor(-20, 10, true);
      remoteControl.startFunction(rotateRightUntilLineConst);
     }
     break;
@@ -870,6 +878,8 @@ void calebFunction()
     else
     {
       chassis.idle();
+      chassis.turnFor(30, 90, true);
+      delay(500);
       currentState = rotateLeftUntilLineAgain;
       Serial.println(currentState);
       remoteControl.stopFunction(calebFunctionConst);
@@ -919,10 +929,10 @@ void rotateRightUntilLineFunct()
   switch (currentState)
   {
   case rotateRightUntilLine:
-      chassis.setMotorEfforts(45, -45);
-      Serial.println(qtr.readLineBlack(sensorValues));
-      if (qtr.readLineBlack(sensorValues) < 600 && qtr.readLineBlack(sensorValues) > 400)
+      chassis.setMotorEfforts(50, -35);
+      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
       {
+        Serial.println(qtr.readLineBlack(sensorValues));
         currentState = lineFollowBlockSixty;
         Serial.println(currentState);
         remoteControl.stopFunction(rotateRightUntilLineConst);
@@ -931,9 +941,10 @@ void rotateRightUntilLineFunct()
     break;
 
   case rotateRightUntilLineAgain:
-  chassis.setMotorEfforts(45, -45);
-      if (qtr.readLineBlack(sensorValues) < 600 && qtr.readLineBlack(sensorValues) > 400)
+  chassis.setMotorEfforts(50, -35);
+      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
       {
+        Serial.println(qtr.readLineBlack(sensorValues));
     currentState = raiseToPlaceFourtyFive;
     Serial.println(currentState);
     remoteControl.stopFunction(rotateRightUntilLineConst);
@@ -957,21 +968,27 @@ void rotateRightUntilLineFunct()
 
 void rotateLeftUntilLineFunct()
 {
+  Serial.println(qtr.readLineBlack(sensorValues));
   if (chassis.checkMotionComplete())
   {
   switch (currentState)
   {
   case rotateLeftUntilLine:
+  chassis.setMotorEfforts(-35, 50);
+  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
+      {
     currentState = lineFollowBlockFourtyFive;
     Serial.println(currentState);
     remoteControl.stopFunction(rotateLeftUntilLineConst);
     remoteControl.startFunction(lineFollowingConst);
+      }
     break;
 
   case rotateLeftUntilLineAgain:
-  chassis.setMotorEfforts(-45, 45);
-  if (qtr.readLineBlack(sensorValues) < 600 && qtr.readLineBlack(sensorValues) > 400)
+    chassis.setMotorEfforts(-35, 50);
+  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
       {
+    Serial.println(qtr.readLineBlack(sensorValues));
     chassis.setMotorEfforts(0, 0);
     currentState = raiseToPlaceSixty;
     Serial.println(currentState);

@@ -35,12 +35,12 @@ int servoEnc = A0;
 bool servoActive = false;
 
 int servoClosedPositionMS = 2000;
-int servoClosedPositionAR = 390;
+int servoClosedPositionAR = 400;
 int servoOpenedPositionMS = 1000;
 int servoOpenedPositionAR = 205;
 
 int servoStuckTolerance = 4;
-int servoCloseTolerance = 5;
+int servoCloseTolerance = 7;
 
 int servoReadingDelay = 50;
 int servoPrevReading, servoStillCount;

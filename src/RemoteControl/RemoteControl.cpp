@@ -59,50 +59,9 @@ void RemoteControl::runCurrentFunctions() {
     }
 }
 
-
-//check if the remote is being pressed for any functions, and runs functions that are active
-void RemoteControl::toggleFunc(Func func, uint8_t remoteButton) {
-    if(currentFunctionCount >= maxNumberOfFunctions) { 
-        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
-        return;
-    }
-    functions[currentFunctionCount] = func;
-    remoteButtons[currentFunctionCount] = remoteButton;
-
-    currentFunctionCount++;
-}
-
-
-// Defines a function that should run once when a given button is pressed
-void RemoteControl::onPress(Func func, uint8_t remoteButton) {
-    if(currentFunctionCount >= maxNumberOfFunctions) { 
-        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
-        return;
-    }
-
-    runOnce[currentFunctionCount] = true;
-    toggleFunc(func,remoteButton);
-}
-
-void RemoteControl::eStop(Func func, uint8_t remoteButton) {
-    if(currentFunctionCount >= maxNumberOfFunctions) { 
-        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
-        return;
-    }
-    eStopIndex = currentFunctionCount;
-    onPress(func,remoteButton);
-}
-
 void RemoteControl::ePause(Func func, uint8_t remoteButton) {
     ePauseIndex = currentFunctionCount;
     onPress(func, remoteButton);
-}
-
-//run all defined functions so far
-void RemoteControl::runCurrentFunctions() {
-    for(int i = 0; i < currentFunctionCount; i++) {
-        functions[i]();
-    }
 }
 
 

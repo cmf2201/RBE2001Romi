@@ -10,6 +10,8 @@ class RemoteControl
         bool runOnce[maxNumberOfFunctions];
         bool eStopped = false;
         int eStopIndex = maxNumberOfFunctions;
+        int ePauseIndex = maxNumberOfFunctions;
+        bool ePaused = false;
         uint8_t remoteButtons[maxNumberOfFunctions];
         uint8_t pin = -1;
         int currentFunctionCount = 0;
