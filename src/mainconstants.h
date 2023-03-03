@@ -83,6 +83,10 @@ float towerDistanceTwo = 10.00;
 float blockDistanceOne = 2.80;
 float blockDistanceTwo = 2.80;
 
+//back up variables
+float wallToLineDist = 27.00;
+float blockBackUpDist = 15.00;
+
 // Remote Testing Variables
 
 bool paused = false;
@@ -94,3 +98,8 @@ void moveDown(void);
 int currentState = 0;
 int PrevState = 0;
 bool GripperBool = true;
+
+// driveFor pausable funciton
+int startPositionLeft = 0;
+int startPositionRight = 0;
+bool motionIncomplete;

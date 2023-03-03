@@ -47,3 +47,5 @@ const uint8_t rotateRightUntilLineConst = 0x26;
 const uint8_t forwardUntilLineConst = 0x27;
 const uint8_t forwardFunctConst = 0x28;
 const uint8_t goToBottomEncoderConst = 0x29;
+const uint8_t driveToPausableTestConst = 0x2A;
+const uint8_t driveToPuasableTest2Const = 0x2B;
