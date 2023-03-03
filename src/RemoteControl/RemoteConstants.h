@@ -52,3 +52,4 @@ const uint8_t driveToPausableTest2Const = 0x2B;
 const uint8_t turnToPausableTest2Const = 0x2D;
 const uint8_t driveForConst = 0x2D;
 const uint8_t turnForConst = 0x2E;
+const uint8_t rotateUntilLineConst = 0x2F;

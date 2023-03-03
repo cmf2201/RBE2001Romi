@@ -108,6 +108,9 @@ bool turnMotionIncomplete;
 int currentTarget;
 int currentSpeed;
 
+//constants for line following constants
+#define lineFoundThresholdHigh 690
+
 
 
 //function definitions (so they can be called anywhere)
@@ -143,8 +146,8 @@ void sixtyDegreeSide();
 void updateCurrentState();
 void calebFunction();
 void rotateUntilLine();
-void rotateRightUntilLine();
-void rotateLeftUntilLine();
+// void rotateRightUntilLine();
+// void rotateLeftUntilLine();
 void forwardUntilLine();
 void returnMotorPosition();
 void driveToPausableTest();

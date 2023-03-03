@@ -295,22 +295,22 @@ void turnFor() {
 
       switch(currentState) {
         case CalebFunctionForty:
-          remoteControl.startFunction(rotateLeftUntilLineConst,
+          remoteControl.startFunction(rotateUntilLineConst,
             currentState = rotateLeftUntilLineState);
           break;
 
         case CalebFunctionSixty:
-          remoteControl.startFunction(rotateRightUntilLineConst,
+          remoteControl.startFunction(rotateUntilLineConst,
             currentState = rotateRightUntilLineState);
           break;
 
         case backUpFourtyFiveAgain:
-          remoteControl.startFunction(rotateRightUntilLineConst,
+          remoteControl.startFunction(rotateUntilLineConst,
             currentState = rotateRightUntilLineAgain);
           break;
 
         case backUpSixtyAgain:
-          remoteControl.startFunction(rotateLeftUntilLineConst,
+          remoteControl.startFunction(rotateUntilLineConst,
             currentState = rotateLeftUntilLineAgain);
           break;
       }
@@ -858,99 +858,138 @@ void calebFunction()
   }
 }
 
+//rotate the bot a given amount until it reaches a line
 void rotateUntilLine() {
-
-}
-
-void rotateRightUntilLine()
-{
-  if (chassis.checkMotionComplete())
-  {
-  
-  switch (currentState)
-  {
-  case rotateRightUntilLineConst:
+  qtr.read(sensorValues);
+  if(!(lineFoundThresholdHigh > sensorValues[0] && lineFoundThresholdHigh > sensorValues[1])) {
+    if( currentState ==  rotateRightUntilLineConst ) {
       chassis.setMotorEfforts(50, -35);
-      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-        Serial.println(qtr.readLineBlack(sensorValues));
-        currentState = lineFollowBlockSixty;
-        Serial.println(currentState);
-        remoteControl.stopFunction(rotateRightUntilLineConst);
-        remoteControl.startFunction(lineFollowingConst);
-      }
-    break;
+    } else if( currentState == rotateLeftUntilLineConst || currentState == rotateLeftUntilLineAgain) {
+      chassis.setMotorEfforts(-35, 50);
+    }
+  } 
+  else 
+  {
+    remoteControl.stopFunction(rotateUntilLineConst);
+    chassis.idle();
 
-  case rotateRightUntilLineAgain:
-  chassis.setMotorEfforts(50, -35);
-      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-        Serial.println(qtr.readLineBlack(sensorValues));
-    currentState = raiseToPlaceFourtyFive;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    remoteControl.startFunction(takeOffLowPlateConst);
-      }
-    break;
-  case rotateRightAfterPlacementSixtyTower:
+    switch (currentState) {
+      case rotateRightUntilLineConst:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowBlockSixty);
+        break;
 
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    currentState = forwardUntilTurnToLeaveSixty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardFunctConst);
-    break;
-  case rotateUntilLineAndReplaceSixty:
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    Serial.println("Replace Me with a New Robot Plz Master");
-    break;
+      case rotateRightUntilLineAgain:
+        remoteControl.startFunction(takeOffLowPlateConst,
+          currentState = raiseToPlaceFourtyFive);
+        break;
+
+      case rotateLeftUntilLineConst:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowBlockFourtyFive);
+        break;
+
+      case rotateLeftUntilLineAgain:
+        remoteControl.startFunction(takeOffHighPlateConst,
+          currentState = raiseToPlaceSixty);
+        break;
+    }
   }
-  }
+
 }
 
+// void rotateRightUntilLine()
+// {
+//   if (chassis.checkMotionComplete())
+//   {
+  
+//   switch (currentState)
+//   {
+//   case rotateRightUntilLineConst:
+//       chassis.setMotorEfforts(50, -35);
+//       if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
+//       {
+//         Serial.println(qtr.readLineBlack(sensorValues));
+//         currentState = lineFollowBlockSixty;
+//         Serial.println(currentState);
+//         remoteControl.stopFunction(rotateRightUntilLineConst);
+//         remoteControl.startFunction(lineFollowingConst);
+//       }
+//     break;
 
-void rotateLeftUntilLine()
-{
-  Serial.println(qtr.readLineBlack(sensorValues));
-  if (chassis.checkMotionComplete())
-  {
-  switch (currentState)
-  {
-  case rotateLeftUntilLineConst:
-  chassis.setMotorEfforts(-35, 50);
-  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-    currentState = lineFollowBlockFourtyFive;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    remoteControl.startFunction(lineFollowingConst);
-      }
-    break;
+//   case rotateRightUntilLineAgain:
+//   chassis.setMotorEfforts(50, -35);
+//       if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
+//       {
+//         Serial.println(qtr.readLineBlack(sensorValues));
+//     currentState = raiseToPlaceFourtyFive;
+//     Serial.println(currentState);
+//     remoteControl.stopFunction(rotateRightUntilLineConst);
+//     remoteControl.startFunction(takeOffLowPlateConst);
+//       }
+//     break;
 
-  case rotateLeftUntilLineAgain:
-    chassis.setMotorEfforts(-35, 50);
-  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-    Serial.println(qtr.readLineBlack(sensorValues));
-    chassis.setMotorEfforts(0, 0);
-    currentState = raiseToPlaceSixty;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    remoteControl.startFunction(takeOffHighPlateConst);
-      }
-    break;
-  case rotateLeftAfterPlacementFourtyTower:
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    currentState = forwardUntilTurnToLeaveFourty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardFunctConst);
-    break;
-  case rotateUntilLineAndReplaceFourty:
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    Serial.println("Replace Me with a New Robot Plz Master");
-    break;
-  }
-  }
-}
+
+//     /// !!!!!!!! THIS SHOULD BE MOVED TO THE ROTATE FUNCTION? OR NEEDS TO FIXED CAUSE DIDN'T WORK? !!!!!!!!!
+//   case rotateRightAfterPlacementSixtyTower:
+
+//     remoteControl.stopFunction(rotateRightUntilLineConst);
+//     currentState = forwardUntilTurnToLeaveSixty;
+//     Serial.println(currentState);
+//     remoteControl.startFunction(forwardFunctConst);
+//     break;
+//   case rotateUntilLineAndReplaceSixty:
+//     remoteControl.stopFunction(rotateRightUntilLineConst);
+//     Serial.println("Replace Me with a New Robot Plz Master");
+//     break;
+//   }
+//   }
+// }
+
+
+// void rotateLeftUntilLine()
+// {
+//   Serial.println(qtr.readLineBlack(sensorValues));
+//   if (chassis.checkMotionComplete())
+//   {
+//   switch (currentState)
+//   {
+//   case rotateLeftUntilLineConst:
+//   chassis.setMotorEfforts(-35, 50);
+//   if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
+//       {
+//     currentState = lineFollowBlockFourtyFive;
+//     Serial.println(currentState);
+//     remoteControl.stopFunction(rotateLeftUntilLineConst);
+//     remoteControl.startFunction(lineFollowingConst);
+//       }
+//     break;
+
+//   case rotateLeftUntilLineAgain:
+//     chassis.setMotorEfforts(-35, 50);
+//   if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
+//       {
+//     Serial.println(qtr.readLineBlack(sensorValues));
+//     chassis.setMotorEfforts(0, 0);
+//     currentState = raiseToPlaceSixty;
+//     Serial.println(currentState);
+//     remoteControl.stopFunction(rotateLeftUntilLineConst);
+//     remoteControl.startFunction(takeOffHighPlateConst);
+//       }
+//     break;
+//   case rotateLeftAfterPlacementFourtyTower:
+//     remoteControl.stopFunction(rotateLeftUntilLineConst);
+//     currentState = forwardUntilTurnToLeaveFourty;
+//     Serial.println(currentState);
+//     remoteControl.startFunction(forwardFunctConst);
+//     break;
+//   case rotateUntilLineAndReplaceFourty:
+//     remoteControl.stopFunction(rotateLeftUntilLineConst);
+//     Serial.println("Replace Me with a New Robot Plz Master");
+//     break;
+//   }
+//   }
+// }
 
 void forwardFunct()
 {
@@ -1162,8 +1201,7 @@ void setup()
 
   remoteControl.toggleFunc(calebFunction, calebFunctionConst);
 
-  remoteControl.toggleFunc(rotateRightUntilLine, rotateRightUntilLineConst);
-  remoteControl.toggleFunc(rotateLeftUntilLine, rotateLeftUntilLineConst);
+  remoteControl.toggleFunc(rotateUntilLine, rotateUntilLineConst);
 
   remoteControl.toggleFunc(forwardFunct, forwardFunctConst);
   remoteControl.toggleFunc(forwardUntilLine, forwardUntilLineConst);
