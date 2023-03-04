@@ -228,22 +228,13 @@ void driveFor() {
         speed = -15.0;
         break;
 
-      case goToOtherSideOfFieldFourty: 
-        distance = 81;
+      case driveBeforeFinishFourty: 
+        distance = 25;
         speed = 30;
       break; 
-
-      case goToOtherSideOfFieldSixty: 
-        distance = 81;
+      case driveBeforeFinishSixty: 
+        distance = 25;
         speed = 30;
-      break; 
-      case driveBeforeFinishFourty:
-        distance = 15;
-        speed = 15;
-      break;
-      case driveBeforeFinishSixty:
-        distance = 15;
-        speed = 15;
       break;
     }
     driveToPausable(distance,speed);
@@ -292,22 +283,14 @@ void driveFor() {
           remoteControl.startFunction(calebFunctionConst,
             currentState = leaveAfterPlacementSixtyTower);
           break;
-      case goToOtherSideOfFieldFourty: 
-        remoteControl.startFunction(rotateUntilLineConst,
-        currentState = rotateRightOppositeSideFourty);
-      break;
-      case goToOtherSideOfFieldSixty: 
-        remoteControl.startFunction(rotateUntilLineConst,
-        currentState = rotateLeftOppositeSideSixty);
-      break;
-      case driveBeforeFinishFourty:
-        remoteControl.startFunction(rotateUntilLineConst,
+        case driveBeforeFinishFourty:
+          remoteControl.startFunction(rotateUntilLineConst,
           currentState = rotateUntilFinishedFourty);
-      break;
-      case driveBeforeFinishSixty:
-        remoteControl.startFunction(rotateUntilLineConst,
+        break;
+        case driveBeforeFinishSixty:
+          remoteControl.startFunction(rotateUntilLineConst,
           currentState = rotateUntilFinishedSixty);
-      break;
+        break;
       }
     }
   }
@@ -358,6 +341,14 @@ void turnFor() {
         angle = -90;
         speed = 30;
       break;
+      case rotateRightOppositeSideFourty:
+        angle = -90;
+        speed = 30;
+      break;
+      case rotateLeftOppositeSideSixty:
+        angle = 90;
+        speed = 30;
+      break;
 
     }
     turnToPausable(angle,speed);
@@ -392,21 +383,29 @@ void turnFor() {
             currentState = rotateLeftUntilLineAgain);
           break;
       case rotateRightToExit:
-        remoteControl.startFunction(driveForConst,
+        remoteControl.startFunction(remote7,
           currentState = goToOtherSideOfFieldFourty);
       break;
       case rotateLeftToExit:
-      remoteControl.startFunction(driveForConst,
-          currentState = goToOtherSideOfFieldSixty);
+        remoteControl.startFunction(remote7,
+        currentState = goToOtherSideOfFieldSixty);
       break;
       case leaveAfterPlacementFourtyTower:
-      remoteControl.startFunction(rotateUntilLineConst,
-          currentState = rotateLeftAfterPlacementFourtyTower);
+        remoteControl.startFunction(rotateUntilLineConst,
+        currentState = rotateLeftAfterPlacementFourtyTower);
         break;
       case leaveAfterPlacementSixtyTower:
       remoteControl.startFunction(rotateUntilLineConst,
           currentState = rotateRightAfterPlacementSixtyTower);
         break;
+      case rotateRightOppositeSideFourty:
+        remoteControl.startFunction(driveForConst, 
+          currentState = driveBeforeFinishFourty);
+      break;
+      case rotateLeftOppositeSideSixty:
+        remoteControl.startFunction(driveForConst,
+          currentState = driveBeforeFinishSixty);
+
       }
     }
   }
@@ -623,7 +622,7 @@ void closeGripper()
       servoPrevMS = millis();
     } 
 
-  }else {
+  } else {
       // Stop servo onced jaw is vlosed
       Serial.println("FINISHED");
       remoteControl.stopFunction(closeGripperConst);
@@ -819,7 +818,7 @@ void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(400);
+    motor.moveTo(500);
   }
   else
   {
@@ -940,7 +939,9 @@ void calebFunction()
         break;
 
       case backUpFourtyFive:
-        remoteControl.startFunction(driveForConst);
+      currentState = waitForRefereeFourty;
+      Serial.println(currentState);
+        // remoteControl.startFunction(driveForConst);
         break;
 
       case backUpSixty:
@@ -978,9 +979,9 @@ void rotateUntilLine() {
 
   if(!(lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
     if( currentState ==  rotateRightUntilLineState|| currentState == rotateRightUntilLineAgain || currentState == rotateRightOppositeSideFourty || currentState == rotateUntilFinishedFourty || currentState == rotateRightAfterPlacementSixtyTower) {
-      chassis.setMotorEfforts(100, -50);
+      chassis.setMotorEfforts(90, -50);
     } else if( currentState == rotateLeftUntilLineState || currentState == rotateLeftUntilLineAgain || currentState == rotateLeftOppositeSideSixty || currentState == rotateUntilFinishedSixty || currentState == rotateLeftAfterPlacementFourtyTower) {
-      chassis.setMotorEfforts(-50, 100);
+      chassis.setMotorEfforts(-50, 90);
     }
   } 
   else 
@@ -1016,14 +1017,6 @@ void rotateUntilLine() {
         remoteControl.startFunction(lineFollowingConst,
           currentState = lineFollowUntilBlockSixtyLast);
       break;
-      case rotateRightOppositeSideFourty:
-        remoteControl.startFunction(driveForConst, 
-          currentState = driveBeforeFinishFourty);
-      break;
-      case rotateLeftOppositeSideSixty:
-        remoteControl.startFunction(driveForConst,
-          currentState = driveBeforeFinishSixty);
-      break;
       case rotateUntilFinishedFourty: 
         chassis.idle();
         currentState = 0;
@@ -1038,11 +1031,32 @@ void rotateUntilLine() {
   }
 }
 
-// void forwardUntilLine() {
-//   if(!(lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
-
-//   }
-// }
+void forwardUntilLine() {
+    qtr.read(sensorValues);
+  Serial.print("FIRST:");
+  Serial.print(sensorValues[0]);
+  Serial.print(" SECOND:");
+  Serial.println(sensorValues[1]);
+  chassis.setMotorEfforts(90,100);
+  if((lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
+    chassis.idle();
+    //remoteControl.stopFunction(forwardFunctConst);
+    remoteControl.stopFunction(remote7);
+    Serial.println("Line visible");
+    Serial.println(currentState);
+    switch(currentState) {
+      
+      case goToOtherSideOfFieldFourty: 
+        remoteControl.startFunction(turnForConst,
+        currentState = rotateRightOppositeSideFourty);
+      break;
+      case goToOtherSideOfFieldSixty: 
+        remoteControl.startFunction(turnForConst,
+        currentState = rotateLeftOppositeSideSixty);
+      break;
+    }
+  }
+}
 
 void returnMotorPosition()
 {
@@ -1139,7 +1153,7 @@ void setup()
   remoteControl.onPress(ultrasonicDistanceTest, remote0);
   remoteControl.onPress(returnMotorPosition, remoteBack);
 
- // remoteControl.toggleFunc(fourtyFiveDegreeSide, remote1);
+ remoteControl.toggleFunc(fourtyFiveDegreeSide, remote1);
   remoteControl.toggleFunc(sixtyDegreeSide, remote2);
   remoteControl.onPress(resetEncoder, remote3);
 
@@ -1169,6 +1183,9 @@ void setup()
 
   remoteControl.toggleFunc(driveFor,driveForConst);
   remoteControl.toggleFunc(turnFor,turnForConst);
+  //remoteControl.toggleFunc(forwardUntilLine, forwardUntilLineConst);
+
+  remoteControl.toggleFunc(forwardUntilLine, remote7);
 
   remoteControl.ePause(stopIt,unPause,remote8);
 
