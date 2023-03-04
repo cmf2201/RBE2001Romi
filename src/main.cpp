@@ -818,7 +818,7 @@ void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(580);
+    motor.moveTo(600);
   }
   else
   {
