@@ -508,8 +508,8 @@ void turnToPausableResume()
   float deltaAngle = (chassis.getRightEncoderCount() - startPositionRight) / ((chassis.robotRadius * 3.14 / 180.0) / chassis.cmPerEncoderTick);
   float angleLeft = currentTarget - deltaAngle;
 
-  // Serial.print("DELTA LEFT: ");
-  // Serial.println(angleLeft);
+  Serial.print("DELTA LEFT: ");
+  Serial.println(angleLeft);
 
   // set the bot to drive the remainder
   chassis.turnFor(angleLeft, currentSpeed);
@@ -882,7 +882,7 @@ void calebFunction()
 void rotateUntilLine()
 {
   qtr.read(sensorValues);
-  if (!(lineFoundThresholdHigh > sensorValues[0] || lineFoundThresholdHigh > sensorValues[1]))
+  if (!(lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1]))
   {
     if (currentState == rotateRightUntilLineConst)
     {
@@ -1084,7 +1084,7 @@ void turnToPausableTest2()
 {
   if (!turnMotionIncomplete)
   {
-    turnToPausable(-90.0, -15.0);
+    turnToPausable(90.0, 15.0);
     Serial.println("TURNING");
     turnMotionIncomplete = true;
   }
@@ -1184,9 +1184,9 @@ void setup()
 
   remoteControl.toggleFunc(goToBottomEncoder, remoteVolMinus);
 
-  // remoteControl.onPress(turnToPausableTest, remote3);
-  // remoteControl.toggleFunc(driveToPausableTest2, driveToPausableTest2Const);
-  // remoteControl.toggleFunc(turnToPausableTest2, turnToPausableTest2Const);
+  remoteControl.onPress(turnToPausableTest, remote3);
+  remoteControl.toggleFunc(driveToPausableTest2, driveToPausableTest2Const);
+  remoteControl.toggleFunc(turnToPausableTest2, turnToPausableTest2Const);
 
   remoteControl.toggleFunc(driveFor, driveForConst);
   remoteControl.toggleFunc(turnFor, turnForConst);
