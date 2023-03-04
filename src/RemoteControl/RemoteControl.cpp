@@ -125,8 +125,9 @@ void RemoteControl::startFunction(uint8_t remoteButton, int printIt = -1) {
         if(remoteButton == remoteButtons[i]) {
             activeFunctions[i] = true;
         }
-        if(printIt != -1) {
-            Serial.println(printIt);
-        }
+    }
+    if(printIt != -1) {
+        Serial.print("Current State: ");
+        Serial.println(printIt);
     }
 }
