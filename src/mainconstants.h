@@ -52,10 +52,9 @@ long servoDelayTime = 1000;
 bool servostop = true;
 
 // motor positions
-int firstSpot45deg = 3472;
-int firstSpot60deg = 8500;
 
 long lastSampleTime = 0;
+
 bool deadBandTesting = false;
 long timeToPrint = 5;
 long now = 0;
@@ -69,7 +68,7 @@ int deadBandCurrentEffort = 0;
 
 // motor positions for bottom out gripper robot
 int bottomOutSpot45 = 3472;
-int bottomOutSpot60 = 8500;
+int bottomOutSpot60 = 8400;
 
 int previousMotorPosition = 0;
 
@@ -78,10 +77,16 @@ const byte ultrasonicTriggerPin = 3;
 const byte ultrasonicEchoPin = 30;
 int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
-int towerDistanceOne = 9;
-int towerDistanceTwo = 1;
-int blockDistanceOne = 2;
-int blockDistanceTwo = 2;
+float towerDistanceOne = 10.10;
+float towerDistanceTwo = 3.5;
+float blockDistanceOne = 2.80;
+float blockDistanceTwo = 2.80;
+
+//back up variables
+float wallToLineDist = 27.00;
+float blockBackUpDist = 15.00;
+
+// Remote Testing Variables
 
 // Remote Testing Variables
 
@@ -94,3 +99,58 @@ void moveDown(void);
 int currentState = 0;
 int PrevState = 0;
 bool GripperBool = true;
+int startPositionLeft = 0;
+int startPositionRight = 0;
+bool driveMotionIncomplete;
+bool turnMotionIncomplete;
+
+int currentTarget;
+int currentSpeed;
+
+//constants for line following constants
+#define lineFoundThresholdHigh 900
+
+
+
+//function definitions (so they can be called anywhere)
+void stopIt();
+float ultrasonicDistance();
+void ultrasonicDistanceTest();
+void lineFollowCalibration();
+void lineFollowing();
+void driveFor();
+void turnFor();
+void linefollowTesting();
+void moveUp();
+void moveDown();
+void openBottomGripper();
+void closeBottomGripper();
+void openGripper();
+void closeGripper();
+void turnToPausableResume();
+void turnToPausableResume(float target, float speed);
+void turnToPausable(float target, float speed);
+void driveToPausableResume();
+void driveToPausableResume(float target, float speed);
+void driveToPausable(float target, float speed);
+void takeOffHighPlate();
+void takeOffLowPlate();
+void raiseSlightly();
+void lowerSlightly();
+void goToBottomEncoder();
+void fourBarLow();
+void resetEncoder();
+void fourtyFiveDegreeSide();
+void sixtyDegreeSide();
+void updateCurrentState();
+void calebFunction();
+void rotateUntilLine();
+// void rotateRightUntilLine();
+// void rotateLeftUntilLine();
+void forwardUntilLine();
+void returnMotorPosition();
+void driveToPausableTest();
+void driveToPausableTest2();
+void turnToPausableTest();
+void turnToPausableTest2();
+void unPause();

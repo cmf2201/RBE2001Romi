@@ -9,6 +9,7 @@
 #include <Chassis.h>
 #include "stateconstants.h"
 #include "mainconstants.h"
+#include <HCSR04.h>
 
 BlueMotor motor;
 Romi32U4ButtonA buttonA;
@@ -33,45 +34,31 @@ void stopIt()
   Serial.println(currentState);
 }
 
-void printTest()
-{
-  Serial.print("AO: ");
-  Serial.println(analogRead(A0));
-  Serial.print("A2: ");
-  Serial.println(analogRead(A2));
-  Serial.print("A3: ");
-  Serial.println(analogRead(A3));
-  Serial.print("A4: ");
-  Serial.println(analogRead(A4));
-  Serial.print("Current State: ");
-  Serial.println(currentState);
+//call functions when unpaused
+void unPause() {
+  Serial.println("UNPAUSED");
+  //resume forward motion if incomplete
+  if(driveMotionIncomplete) {
+    driveToPausableResume();
+    Serial.println("RESUMEING DRIVE");
+  }
+  if(turnMotionIncomplete) {
+    turnToPausableResume();
+    Serial.println("RESUMEING TURN");
+  }
 }
 
-int ultrasonicDistance()
+
+//returns the distance in cm of the ultrasonic sensor
+float ultrasonicDistance()
 {
-  digitalWrite(ultrasonicTriggerPin, LOW); // Clear ultrasonic trigger pin
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, HIGH); // Outputs signal
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, LOW); // Stops outputting signals
-  ultrasonicSignalDuration = pulseIn(ultrasonicEchoPin, HIGH);
-  frontDistance = ultrasonicSignalDuration * 0.034 / 2; // (time) * (speed of sound) / 2 (sending then receiving)
-  // Serial.print("Distance: ");
-  // Serial.println(frontDistance);
-  return frontDistance;
+  double* distances = HCSR04.measureDistanceCm();
+  return distances[0];
 }
 
 void ultrasonicDistanceTest()
 {
-  digitalWrite(ultrasonicTriggerPin, LOW); // Clear ultrasonic trigger pin
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, HIGH); // Outputs signal
-  delay(10);
-  digitalWrite(ultrasonicTriggerPin, LOW); // Stops outputting signals
-  ultrasonicSignalDuration = pulseIn(ultrasonicEchoPin, HIGH);
-  frontDistance = ultrasonicSignalDuration * 0.034 / 2; // (time) * (speed of sound) / 2 (sending then receiving)
-  Serial.print("Distance: ");
-  Serial.println(frontDistance);
+  Serial.println(ultrasonicDistance());
 }
 
 void lineFollowCalibration()
@@ -101,158 +88,331 @@ void lineFollowCalibration()
   Serial.println();
 }
 
-void qtrReadings()
-{
-  // read calibrated sensor values and obtain a measure of the line position
-  // from 0 to 5000 (for a white line, use readLineWhite() instead)
-  uint16_t position = qtr.readLineBlack(sensorValues);
-
-  // print the sensor values as numbers from 0 to 1000, where 0 means maximum
-  // reflectance and 1000 means minimum reflectance, followed by the line
-  // position
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
-    Serial.print("sensor:");
-    Serial.print(i);
-    Serial.print('\t');
-    Serial.print(sensorValues[i]);
-    Serial.print('\t');
-  }
-  Serial.print("POSITION:");
-  Serial.println(position);
-}
-
 void lineFollowing()
 {
-  // Serial.print("CURRENTSTATE: ");
-  // Serial.print(currentState);
-  // Serial.print("\t");
+  int cutoff;
+  float curDistance = ultrasonicDistance();
+  //check if the target has been reached based on current state
+  if( currentState == lineFollowFourtyFiveTower || currentState == lineFollowFourtyFiveTowerAgain){
+    cutoff = towerDistanceOne;
+  } else if (currentState == lineFollowSixtyTower || currentState == lineFollowSixtyTowerAgain) {
+    cutoff = towerDistanceTwo;
+  } else if (currentState == lineFollowBlockFourtyFive || currentState == lineFollowBlockFourtyFiveLast || lineFollowUntilBlockSixtyLast) {
+    cutoff = blockDistanceTwo;
+  } else {
+    cutoff = blockDistanceOne;
+  }
+  bool targetReached = (curDistance <= cutoff || curDistance >= 1000);
   uint16_t position = qtr.readLineBlack(sensorValues);
   if (position > 700)
   {
-    //   Serial.println("FAR RIGHT");
-    chassis.setMotorEfforts(80, 64-20);
+    chassis.setMotorEfforts(80, 40);
   }
   else if (position < 300)
   {
-    //   Serial.println("FAR LEFT");
-    chassis.setMotorEfforts(64-20, 80);
+    chassis.setMotorEfforts(40, 80);
   }
   else
   {
-    chassis.setMotorEfforts(80, 80);
+    chassis.setMotorEfforts(75, 80);
   }
-  switch (currentState)
-  {
-  case lineFollowFourtyFiveTower:
-    // Serial.println("Test");
-    if (ultrasonicDistance() < towerDistanceOne || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = closeGripperFourtyFiveTowerUnconfirmed;
-      Serial.println(currentState);
-      remoteControl.startFunction(closeGripperConst);
-    }
+  if(targetReached) {
+    Serial.println("FINISHED TARGET");
+    remoteControl.stopFunction(lineFollowingConst);
+    chassis.idle();
+    Serial.print(currentState);
 
-    break;
+    switch (currentState)
+    {
+      case lineFollowFourtyFiveTower:
 
-  case lineFollowSixtyTower:
-    if (ultrasonicDistance() <= towerDistanceTwo || ultrasonicDistance() >= 1000)
-    {
-      delay(100);
-      chassis.setMotorEfforts(0, 0);
-      remoteControl.stopFunction(lineFollowingConst);
-      currentState = closeGripperSixtyTowerUnconfirmed;
-      Serial.println(currentState);
-      remoteControl.startFunction(closeGripperConst);
-    }
-    break;
-  case lineFollowBlockFourtyFive:
-    if (ultrasonicDistance() <= blockDistanceOne || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      Serial.println(currentState);
-      currentState = lowerMaxFourtyFive;
-      Serial.println(currentState);
-      remoteControl.startFunction(fourBarLowConst);
-    }
-    break;
-  case lineFollowBlockSixty:
-    if (ultrasonicDistance() <= blockDistanceTwo || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = lowerMaxSixty;
-      Serial.println(currentState);
-      remoteControl.startFunction(fourBarLowConst);
-    }
-    break;
-  case lineFollowBlockSixtyLast:
-    if (ultrasonicDistance() <= blockDistanceTwo || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = grabNewPlateSixty;
-      Serial.println(currentState);
-      remoteControl.startFunction(closeGripperConst);
-    }
-    break;
-  case lineFollowBlockFourtyFiveLast:
-    if (ultrasonicDistance() <= blockDistanceOne || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = grabNewPlateFourtyFive;
-      Serial.println(currentState);
-      remoteControl.startFunction(closeGripperConst);
-    }
-    break;
-  case lineFollowFourtyFiveTowerAgain:
-    if (ultrasonicDistance() <= towerDistanceOne || ultrasonicDistance() >= 1000)
-    {
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = lowerSlightlyFourtyFive;
-      Serial.println(currentState);
-      remoteControl.startFunction(lowerSlightlyConst);
-    }
-    break;
-  case lineFollowSixtyTowerAgain:
-    if (ultrasonicDistance() <= towerDistanceTwo || ultrasonicDistance() >= 1000)
-    {
-      chassis.setMotorEfforts(-100, -100);
-      delay(50);
-      remoteControl.stopFunction(lineFollowingConst);
-      chassis.setMotorEfforts(0, 0);
-      currentState = lowerSlightlySixty;
-      remoteControl.startFunction(lowerSlightlyConst);
+        remoteControl.startFunction(closeGripperConst,
+        currentState = closeGripperFourtyFiveTowerUnconfirmed);
+
+        break;
+
+      case lineFollowSixtyTower:
+
+        remoteControl.startFunction(driveForConst);
+        break;
+
+      case lineFollowBlockFourtyFive:
+
+        remoteControl.startFunction(fourBarLowConst,
+          currentState = lowerMaxFourtyFive);
+        break;
+
+      case lineFollowBlockSixty:
+
+        remoteControl.startFunction(fourBarLowConst,
+          currentState = lowerMaxSixty);
+        break;
+
+      case lineFollowBlockSixtySecond:
+
+        remoteControl.startFunction(closeGripperConst, 
+          currentState = grabNewPlateSixty);
+        break;
+
+      case lineFollowBlockFourtyFiveLast:
+
+        remoteControl.startFunction(closeGripperConst,
+          currentState = grabNewPlateFourtyFive);
+        break;
+
+      case lineFollowFourtyFiveTowerAgain:
+
+        remoteControl.startFunction(lowerSlightlyConst, 
+          currentState = lowerSlightlyFourtyFive);
+        break;
+      case lineFollowSixtyTowerAgain:
+        remoteControl.startFunction(driveForConst);
+        break;
+      case lineFollowUntilBlockFourtyLast:
+        remoteControl.startFunction(turnForConst, 
+        currentState = rotateRightToExit);
+        break;
+      case lineFollowUntilBlockSixtyLast: 
+        remoteControl.startFunction(turnForConst, 
+        currentState = rotateLeftToExit);
+      break;
+
     }
   }
 }
 
-void linefollowTesting()
-{
-  // Serial.print("CURRENTSTATE: ");
-  // Serial.print(currentState);
-  // Serial.print("\t");
-  uint16_t position = qtr.readLineBlack(sensorValues);
-  if (position > 700)
-  {
-    //   Serial.println("FAR RIGHT");
-    chassis.setMotorEfforts(80, 64);
+
+//function that will drive the robot forward a given amount
+void driveFor() {
+  if(!driveMotionIncomplete) {
+    float distance = 0;
+    float speed = 0;
+    switch(currentState) {
+      case lineFollowSixtyTower:
+        distance = 5.0;
+        speed = 5.0;
+        break;
+
+      case lineFollowSixtyTowerAgain:
+        distance = 5.0;
+        speed = 10.0;
+        break;
+
+      case raiseSlightlyFourtyFiveTower:
+        distance = -20.0;
+        speed = -10.0;
+        break;
+
+      case raiseSlightlySixtyTower:
+        distance = -20.0;
+        speed = -10.0;
+        break;
+
+      case backUpFourtyFive:
+        distance = 10.0;
+        speed = 10.0;
+        break;
+
+      case backUpSixty:
+        distance = 10.0;
+        speed = 10.0;
+        break;
+      
+      case openGripperFourtyFiveTowerConfirmed:
+        distance = -5.0;
+        speed = -10.0;
+        break;
+
+      case openGripperSixtyTowerConfirmed:
+        distance = -15.0;
+        speed = -15.0;
+        break;
+
+      case goToOtherSideOfFieldFourty: 
+        distance = 81;
+        speed = 30;
+      break; 
+
+      case goToOtherSideOfFieldSixty: 
+        distance = 81;
+        speed = 30;
+      break; 
+      case driveBeforeFinishFourty:
+        distance = 15;
+        speed = 15;
+      break;
+      case driveBeforeFinishSixty:
+        distance = 15;
+        speed = 15;
+      break;
+    }
+    driveToPausable(distance,speed);
+    driveMotionIncomplete = true;
   }
-  else if (position < 300)
+  else 
   {
-    //   Serial.println("FAR LEFT");
-    chassis.setMotorEfforts(64, 80);
-  }
-  else
-  {
-    chassis.setMotorEfforts(80, 80);
+    if(chassis.checkMotionComplete()) {
+      Serial.println("MOTION COMPLETE");
+
+      remoteControl.stopFunction(driveForConst);
+      chassis.idle();
+      driveMotionIncomplete = false;
+
+      switch(currentState) {
+        case lineFollowSixtyTower:
+          remoteControl.startFunction(closeGripperConst,
+            currentState = closeGripperSixtyTowerUnconfirmed);
+          break;
+
+        case lineFollowSixtyTowerAgain:
+          remoteControl.startFunction(lowerSlightlyConst, 
+          currentState = lowerSlightlySixty);
+          break;
+
+        case raiseSlightlyFourtyFiveTower:
+            remoteControl.startFunction(calebFunctionConst,
+            currentState = CalebFunctionFourty);
+          break;
+
+        case raiseSlightlySixtyTower:
+          remoteControl.startFunction(calebFunctionConst,
+            currentState = CalebFunctionSixty);
+          break;
+
+        case backUpFourtyFive:
+          currentState = waitForRefereeFourty;
+          Serial.println(currentState);
+          break;
+        case openGripperFourtyFiveTowerConfirmed:
+          remoteControl.startFunction(calebFunctionConst,
+            currentState = leaveAfterPlacementFourtyTower);
+          break;
+
+        case openGripperSixtyTowerConfirmed:
+          remoteControl.startFunction(calebFunctionConst,
+            currentState = leaveAfterPlacementSixtyTower);
+          break;
+      case goToOtherSideOfFieldFourty: 
+        remoteControl.startFunction(rotateUntilLineConst,
+        currentState = rotateRightOppositeSideFourty);
+      break;
+      case goToOtherSideOfFieldSixty: 
+        remoteControl.startFunction(rotateUntilLineConst,
+        currentState = rotateLeftOppositeSideSixty);
+      break;
+      case driveBeforeFinishFourty:
+        remoteControl.startFunction(rotateUntilLineConst,
+          currentState = rotateUntilFinishedFourty);
+      break;
+      case driveBeforeFinishSixty:
+        remoteControl.startFunction(rotateUntilLineConst,
+          currentState = rotateUntilFinishedSixty);
+      break;
+      }
+    }
   }
 }
+
+//function that will turn the robot forward a given amount
+void turnFor() {
+  if(!turnMotionIncomplete) {
+    float angle = 0;
+    float speed = 0;
+    switch(currentState) {
+      case CalebFunctionFourty:
+        angle = 90.0;
+        speed = 40.0;
+        break;
+
+      case CalebFunctionSixty:
+        angle = -45.0;
+        speed = 40.0;
+        break;
+
+      case backUpFourtyFiveAgain:
+        angle = -90.0;
+        speed = 40.0;
+        break;
+
+      case backUpSixtyAgain:
+        angle = 45.0;
+        speed = 40.0;
+        break;
+      
+      case leaveAfterPlacementFourtyTower:
+        angle = 45;
+        speed = 40;
+      break;
+
+      case leaveAfterPlacementSixtyTower:
+        angle = -45;
+        speed = 40;
+      break;
+
+      case rotateLeftToExit: 
+        angle = 90;
+        speed = 30;
+      break;
+
+      case rotateRightToExit: 
+        angle = -90;
+        speed = 30;
+      break;
+
+    }
+    turnToPausable(angle,speed);
+    turnMotionIncomplete = true;
+  }
+  else 
+  {
+    if(chassis.checkMotionComplete()) {
+
+      remoteControl.stopFunction(turnForConst);
+      chassis.setMotorEfforts(0,0);
+      turnMotionIncomplete = false;
+
+      switch(currentState) {
+        case CalebFunctionFourty:
+          remoteControl.startFunction(rotateUntilLineConst,
+            currentState = rotateLeftUntilLineState);
+          break;
+
+        case CalebFunctionSixty:
+          remoteControl.startFunction(rotateUntilLineConst,
+            currentState = rotateRightUntilLineState);
+          break;
+
+        case backUpFourtyFiveAgain:
+          remoteControl.startFunction(rotateUntilLineConst,
+            currentState = rotateRightUntilLineAgain);
+          break;
+
+        case backUpSixtyAgain:
+          remoteControl.startFunction(rotateUntilLineConst,
+            currentState = rotateLeftUntilLineAgain);
+          break;
+      case rotateRightToExit:
+        remoteControl.startFunction(driveForConst,
+          currentState = goToOtherSideOfFieldFourty);
+      break;
+      case rotateLeftToExit:
+      remoteControl.startFunction(driveForConst,
+          currentState = goToOtherSideOfFieldSixty);
+      break;
+      case leaveAfterPlacementFourtyTower:
+      remoteControl.startFunction(rotateUntilLineConst,
+          currentState = rotateLeftAfterPlacementFourtyTower);
+        break;
+      case leaveAfterPlacementSixtyTower:
+      remoteControl.startFunction(rotateUntilLineConst,
+          currentState = rotateRightAfterPlacementSixtyTower);
+        break;
+      }
+    }
+  }
+}
+
+
 
 void moveUp()
 {
@@ -408,30 +568,25 @@ void openGripper()
     // Stop servo onced jaw is opened
     remoteControl.stopFunction(openGripperConst);
     remoteControl.stopFunction(remoteLeft);
+
     switch (currentState)
     {
     case openGripperFourtyFiveBlockConfirmed:
-      currentState = backUpFourtyFive;
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
+      remoteControl.startFunction(calebFunctionConst,
+        currentState = backUpFourtyFive);
       break;
 
     case openGripperSixtyBlockConfirmed:
-      currentState = backUpSixty;
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
+      remoteControl.startFunction(calebFunctionConst,
+        currentState = backUpSixty);
       break;
+
     case openGripperFourtyFiveTowerConfirmed:
-      currentState = leaveAfterPlacementFourtyTower;
-      chassis.driveFor(-5, -5, true);
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
+      remoteControl.startFunction(driveForConst);
       break;
+
     case openGripperSixtyTowerConfirmed:
-      currentState = leaveAfterPlacementSixtyTower;
-      chassis.driveFor(-15, -15, true);
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
+      remoteControl.startFunction(driveForConst);
       break;
     }
   }
@@ -439,72 +594,61 @@ void openGripper()
 
 void closeGripper()
 {
-    int servoCurrentPosition = analogRead(servoEnc);
-    //Serial.println(servoCurrentPosition);
-    if(!(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance)) {
-      // every (servoReadingDelay) ms, try to move the gripper
-      if(millis() > servoPrevMS + servoReadingDelay) {
-        gripperServo.writeMicroseconds(servoClosedPositionMS);
+  int servoCurrentPosition = analogRead(servoEnc);
+  //Serial.println(servoCurrentPosition);
+  if(!(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance)) {
+    // every (servoReadingDelay) ms, try to move the gripper
+    if(millis() > servoPrevMS + servoReadingDelay) {
+      gripperServo.writeMicroseconds(servoClosedPositionMS);
 
-        //check if the servo is getting stuck. If so, open the Bottom Gripper.
-        if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
-          //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
-          if(servoStillCount >= 15) {
-            Serial.println("STUCK!");
-            openGripper();
-            remoteControl.stopFunction(closeGripperConst);
-            remoteControl.stopFunction(remoteRight);
-          }
-          servoStillCount++;
-          
-        } else {
-          servoStillCount = 0;
+      //check if the servo is getting stuck. If so, open the Bottom Gripper.
+      if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
+        //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
+        if(servoStillCount >= 15) {
+          Serial.println("STUCK!");
+          openGripper();
+          remoteControl.stopFunction(closeGripperConst);
+          remoteControl.stopFunction(remoteRight);
         }
-
-        //if Gripper has reached target position, finish movement
+        servoStillCount++;
         
+      } else {
+        servoStillCount = 0;
+      }
 
-        servoPrevReading = servoCurrentPosition;
-        servoPrevMS = millis();
-      } 
+      //if Gripper has reached target position, finish movement
+      
 
-    }else {
+      servoPrevReading = servoCurrentPosition;
+      servoPrevMS = millis();
+    } 
+
+  }else {
       // Stop servo onced jaw is vlosed
       Serial.println("FINISHED");
       remoteControl.stopFunction(closeGripperConst);
       remoteControl.stopFunction(remoteRight);
+
       switch (currentState)
       {
       case confirmedFourtyFiveTower:
-        currentState = raiseSlightlyFourtyFiveTower;
-        Serial.println(currentState);
-        remoteControl.startFunction(raiseSlightlyConst);
-        remoteControl.stopFunction(closeGripperConst);
-        remoteControl.stopFunction(remoteRight);
+          remoteControl.startFunction(raiseSlightlyConst,
+          currentState = raiseSlightlyFourtyFiveTower);
         break;
 
       case confirmedSixtyTower:
-        currentState = raiseSlightlySixtyTower;
-        Serial.println(currentState);
-        remoteControl.stopFunction(closeGripperConst);
-        remoteControl.stopFunction(remoteRight);
-        remoteControl.startFunction(raiseSlightlyConst);
+        remoteControl.startFunction(raiseSlightlyConst,
+          currentState = raiseSlightlySixtyTower);
         break;
+
       case grabNewPlateFourtyFive:
-        currentState = backUpFourtyFiveAgain;
-        Serial.println(currentState);
-        remoteControl.startFunction(calebFunctionConst);
-        remoteControl.stopFunction(closeGripperConst);
-        remoteControl.stopFunction(remoteRight);
+        remoteControl.startFunction(calebFunctionConst,
+          currentState = backUpFourtyFiveAgain);
         break;
+
       case grabNewPlateSixty:
-        currentState = backUpSixtyAgain;
-        Serial.println(currentState);
-        remoteControl.stopFunction(closeGripperConst);
-        remoteControl.stopFunction(remoteRight);
-        remoteControl.startFunction(calebFunctionConst);
-        break;
-      default:
+        remoteControl.startFunction(calebFunctionConst,
+          currentState = backUpSixtyAgain);
         break;
       }
     }
@@ -516,27 +660,24 @@ void takeOffHighPlate()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(firstSpot60deg);
-  } else 
-  {
+    motor.moveTo(bottomOutSpot60);
+  } 
+  else
+  { 
+    motor.setToggleOff(true);
+    remoteControl.stopFunction(takeOffHighPlateConst);
+    chassis.driveFor(0,0);
+
     switch (currentState)
     {
     case raiseSixty:
-      chassis.setMotorEfforts(0,0);
-      remoteControl.stopFunction(takeOffHighPlateConst);
-      motor.setToggleOff(true);
-      currentState = lineFollowSixtyTower;
-      Serial.println(currentState);
-      remoteControl.startFunction(lineFollowingConst);
+      remoteControl.startFunction(lineFollowingConst,
+        currentState = lineFollowSixtyTower);
       break;
 
     case raiseToPlaceSixty:
-    chassis.setMotorEfforts(0,0);
-      remoteControl.stopFunction(takeOffHighPlateConst);
-      motor.setToggleOff(true);
-      currentState = raiseSlightlySixtyTowerAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(raiseSlightlyConst);
+      remoteControl.startFunction(raiseSlightlyConst,
+        currentState = raiseSlightlySixtyTowerAgain);
       break;
     }
   }
@@ -547,135 +688,121 @@ void takeOffLowPlate()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(firstSpot45deg);
+    motor.moveTo(bottomOutSpot45);
   }
   else
   {
     remoteControl.stopFunction(takeOffLowPlateConst);
     motor.setToggleOff(true);
+
     switch (currentState)
     {
     case raiseFourtyFive:
-      currentState = lineFollowFourtyFiveTower;
-      Serial.println(currentState);
-      remoteControl.startFunction(lineFollowingConst);
+      remoteControl.startFunction(lineFollowingConst,
+        currentState = lineFollowFourtyFiveTower);
       break;
 
     case raiseToPlaceFourtyFive:
-      currentState = raiseSlightlyFourtyFiveTowerAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(raiseSlightlyConst);
+      remoteControl.startFunction(raiseSlightlyConst, 
+        currentState = raiseSlightlyFourtyFiveTowerAgain);
       break;
     }
   }
 }
 
+//raises the motor slightly
 void raiseSlightly()
 {
-  //  Serial.println(currentState);
-  switch (currentState)
-  {
-  case raiseSlightlyFourtyFiveTower:
+  //decide what position to move to
+  if (motor.getToggleOff()){
+    int moveToPos;
+    switch(currentState) {
+      case (raiseSlightlyFourtyFiveTower):
+        moveToPos = bottomOutSpot45 + 800;
+        break;
 
-    /// Serial.println("FourtyFive");
-    if (motor.getToggleOff())
-    {
-      motor.moveTo(firstSpot45deg + 800);
+      case (raiseSlightlyFourtyFiveTowerAgain):
+        moveToPos = bottomOutSpot45 + 800;
+        break;
+      
+      case (raiseSlightlySixtyTower):
+        moveToPos = bottomOutSpot60 - 1200;
+        break;
+
+      case (raiseSlightlySixtyTowerAgain):
+        moveToPos = bottomOutSpot60 - 1200;
+        break;
     }
-    else
-    {
-      remoteControl.stopFunction(raiseSlightlyConst);
-      motor.setToggleOff(true);
-      currentState = CalebFunctionForty;
-      chassis.driveFor(-20, -10, true);
-      Serial.println(currentState);
-      remoteControl.startFunction(calebFunctionConst);
-    }
-    break;
-  case raiseSlightlySixtyTower:
-    if (motor.getToggleOff())
-    {
-      //  Serial.println("RAISING SLIGHTLY");
-      motor.moveTo(firstSpot60deg - 1200);
-    }
-    else
-    {
-      motor.setToggleOff(true);
-      remoteControl.stopFunction(raiseSlightlyConst);
-      currentState = CalebFunctionSixty;
-      Serial.println(currentState);
-      chassis.driveFor(-20, -5, true);
-      remoteControl.startFunction(calebFunctionConst);
-    }
-    break;
-  case raiseSlightlyFourtyFiveTowerAgain:
-    if (motor.getToggleOff())
-    {
-      motor.moveTo(firstSpot45deg + 800);
-    }
-    else
-    {
-      motor.setToggleOff(true);
-      remoteControl.stopFunction(raiseSlightlyConst);
-      currentState = lineFollowFourtyFiveTowerAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(lineFollowingConst);
-    }
-    break;
-  case raiseSlightlySixtyTowerAgain:
-    if (motor.getToggleOff())
-    {
-      motor.moveTo(firstSpot60deg - 1200);
-    }
-    else
-    {
-      motor.setToggleOff(true);
-      remoteControl.stopFunction(raiseSlightlyConst);
-      currentState = lineFollowSixtyTowerAgain;
-      Serial.println(currentState);
-      remoteControl.startFunction(lineFollowingConst);
-    }
-    break;
+    motor.moveTo(moveToPos);
   }
+  else
+  {
+    motor.setToggleOff(true);
+    remoteControl.stopFunction(raiseSlightlyConst);
+
+    switch (currentState)
+    {
+      case raiseSlightlyFourtyFiveTower:
+        remoteControl.startFunction(driveForConst);
+        break;
+
+      case raiseSlightlySixtyTower:
+        remoteControl.startFunction(driveForConst);
+        break;
+
+      case raiseSlightlyFourtyFiveTowerAgain:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowFourtyFiveTowerAgain);
+        break;
+
+      case raiseSlightlySixtyTowerAgain:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowSixtyTowerAgain);
+        break;
+    }
+  }  
 }
+
 
 void lowerSlightly()
 {
-
-  switch (currentState)
+  if (motor.getToggleOff())
   {
-  case lowerSlightlyFourtyFive:
-    if (motor.getToggleOff())
-    {
-      motor.moveTo(firstSpot45deg - 100);
-    }
-    else
-    {
-      remoteControl.stopFunction(raiseSlightlyConst);
-      motor.setToggleOff(true);
-      currentState = placePlateFourtyFiveUnconfirmed;
-      Serial.println(currentState);
-    }
-    break;
+    int moveToPos;
+    switch(currentState) {
+      case (lowerSlightlyFourtyFive):
+        moveToPos = bottomOutSpot45 - 100;
+        break;
 
-  case lowerSlightlySixty:
-    if (motor.getToggleOff())
-    {
-      motor.moveTo(firstSpot60deg + 300);
+      case (lowerSlightlySixty):
+        moveToPos = bottomOutSpot60 + 250;
+        break;
     }
-    else
+    motor.moveTo(moveToPos);
+  } 
+  else 
+  {
+    motor.setToggleOff(true);
+    remoteControl.stopFunction(lowerSlightlyConst);
+
+    switch (currentState)
     {
-      remoteControl.stopFunction(raiseSlightlyConst);
-      motor.setToggleOff(true);
-      currentState = placePlateSixtyUnconfirmed;
-      Serial.println(currentState);
-      break;
+      case lowerSlightlyFourtyFive:
+        currentState = placePlateFourtyFiveUnconfirmed;
+        Serial.println(currentState);
+        break;
+
+      case lowerSlightlySixty:
+        currentState = placePlateSixtyUnconfirmed;
+        Serial.println(currentState);
+        break;
     }
   }
 }
 
-void goToBottomEncoder() {
-    if (motor.getToggleOff())
+void goToBottomEncoder() 
+{
+  if (motor.getToggleOff())
   {
     motor.moveTo(0);
   }
@@ -683,15 +810,16 @@ void goToBottomEncoder() {
   {
     motor.setToggleOff(true);
     remoteControl.stopFunction(remoteVolMinus);
+  }
 }
-}
+
 
 // Moves motor until 4-bar linkage and gripper are positioned to grab the lowest point
 void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(500);
+    motor.moveTo(400);
   }
   else
   {
@@ -715,69 +843,66 @@ void fourBarLow()
 void resetEncoder()
 {
   motor.reset();
+  Serial.println("Motor reset :)");
 }
 
 void fourtyFiveDegreeSide()
 {
-  currentState = raiseFourtyFive;
-  Serial.println(currentState);
   remoteControl.stopFunction(remote1);
-  remoteControl.startFunction(takeOffLowPlateConst);
+  remoteControl.startFunction(takeOffLowPlateConst,
+    currentState = raiseFourtyFive);
 }
 
 void sixtyDegreeSide()
 {
-  currentState = raiseSixty;
-  Serial.println(currentState);
   remoteControl.stopFunction(remote2);
-  remoteControl.startFunction(takeOffHighPlateConst);
+  remoteControl.startFunction(takeOffHighPlateConst,
+    currentState = raiseSixty);
 }
 
+//update the current state when a button is pressed so that the bot can wait for user input
 void updateCurrentState()
 {
-  Serial.println(currentState);
   switch (currentState)
   {
   case closeGripperFourtyFiveTowerUnconfirmed:
-    currentState = confirmedFourtyFiveTower;
-    Serial.println(currentState);
-    remoteControl.startFunction(closeGripperConst);
+    remoteControl.startFunction(closeGripperConst,
+      currentState = confirmedFourtyFiveTower);
     break;
 
   case closeGripperSixtyTowerUnconfirmed:
-    currentState = confirmedSixtyTower;
-    Serial.println(currentState);
-    remoteControl.startFunction(closeGripperConst);
+    remoteControl.startFunction(closeGripperConst,
+      currentState = confirmedSixtyTower);
     break;
+
   case openGripperFourtyFiveBlockUnconfirmed:
-    currentState = openGripperFourtyFiveBlockConfirmed;
-    Serial.println(currentState);
-    remoteControl.startFunction(openGripperConst);
+    remoteControl.startFunction(openGripperConst,
+      currentState = openGripperFourtyFiveBlockConfirmed);
     break;
+
   case openGripperSixtyBlockUnconfirmed:
-    currentState = openGripperSixtyBlockConfirmed;
-    Serial.println(currentState);
-    remoteControl.startFunction(openGripperConst);
+    remoteControl.startFunction(openGripperConst,
+      currentState = openGripperSixtyBlockConfirmed);
     break;
+  
   case placePlateFourtyFiveUnconfirmed:
-    currentState = openGripperFourtyFiveTowerConfirmed;
-    Serial.println(currentState);
-    remoteControl.startFunction(openGripperConst);
+    remoteControl.startFunction(openGripperConst,
+      currentState = openGripperFourtyFiveTowerConfirmed);
     break;
+
   case placePlateSixtyUnconfirmed:
-    currentState = openGripperSixtyTowerConfirmed;
-    Serial.println(currentState);
-    remoteControl.startFunction(openGripperConst);
+    remoteControl.startFunction(openGripperConst,
+      currentState = openGripperSixtyTowerConfirmed);
     break;
+  
   case waitForRefereeSixty:
-    currentState = lineFollowBlockSixtyLast;
-    Serial.println(currentState);
-    remoteControl.startFunction(lineFollowingConst);
+      remoteControl.startFunction(lineFollowingConst,
+      currentState = lineFollowBlockSixtySecond);
     break;
-  case waitForRefereeForty:
-    currentState = lineFollowBlockFourtyFiveLast;
-    Serial.println(currentState);
-    remoteControl.startFunction(lineFollowingConst);
+
+  case waitForRefereeFourty:
+    remoteControl.startFunction(lineFollowingConst,
+      currentState = lineFollowBlockFourtyFiveLast);
     break;
   }
 }
@@ -787,319 +912,196 @@ void calebFunction()
   float distanceUlt = ultrasonicDistance();
   Serial.print("DISTANCE:   ");
   Serial.println(distanceUlt);
-  switch (currentState)
+  bool targetReached;
+  if(currentState == backUpFourtyFive || currentState == backUpSixty)
   {
-  case CalebFunctionForty:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      currentState = rotateLeftUntilLine;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      chassis.turnFor(90, 90.0);
-      remoteControl.startFunction(rotateLeftUntilLineConst);
-    }
-    break;
-  case CalebFunctionSixty:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      currentState = rotateRightUntilLine;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      chassis.turnFor(-20, 10, true);
-     remoteControl.startFunction(rotateRightUntilLineConst);
-    }
-    break;
-  case backUpFourtyFive:
-    if (distanceUlt < 15 || distanceUlt > 100)
-    {
-     // Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      motor.setEffort(400);
-      delay(50);
-      motor.setEffort(0);
-      currentState = waitForRefereeForty;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-    }
-    break;
-  case backUpSixty:
-    if (distanceUlt < 15 || distanceUlt > 100)
-    {
-    //  Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      motor.setEffort(400);
-      delay(50);
-      motor.setEffort(0);
-      currentState = waitForRefereeSixty;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-    }
-    break;
-  case backUpFourtyFiveAgain:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-    //  Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      currentState = rotateRightUntilLineAgain;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      chassis.turnFor(-90, 90.0);
-      remoteControl.startFunction(rotateRightUntilLineConst);
-    }
-    break;
-  case backUpSixtyAgain:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-    //  Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      chassis.turnFor(30, 90, true);
-      delay(500);
-      currentState = rotateLeftUntilLineAgain;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      remoteControl.startFunction(rotateLeftUntilLineConst);
-    }
-    break;
-  case leaveAfterPlacementFourtyTower:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-    //  Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      currentState = rotateLeftAfterPlacementFourtyTower;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      chassis.turnFor(90, 90.0);
-      remoteControl.startFunction(rotateLeftUntilLineConst);
-    }
-    break;
-  case leaveAfterPlacementSixtyTower:
-    if (distanceUlt < 27 || distanceUlt > 100)
-    {
-    //  Serial.println(ultrasonicDistance());
-      chassis.setWheelSpeeds(-5.00, -5.00);
-    }
-    else
-    {
-      chassis.idle();
-      currentState = rotateRightAfterPlacementSixtyTower;
-      Serial.println(currentState);
-      remoteControl.stopFunction(calebFunctionConst);
-      remoteControl.startFunction(rotateRightUntilLineConst);
-    }
-    break;
+    targetReached = !(distanceUlt < blockBackUpDist || distanceUlt > 100);
+  } 
+  else
+  {
+    targetReached = !(distanceUlt < wallToLineDist || distanceUlt > 100);
   }
-}
-
-
-void rotateRightUntilLineFunct()
-{
-  if (chassis.checkMotionComplete())
-  {
-  
-  switch (currentState)
-  {
-  case rotateRightUntilLine:
-      chassis.setMotorEfforts(50, -35);
-      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-        Serial.println(qtr.readLineBlack(sensorValues));
-        currentState = lineFollowBlockSixty;
-        Serial.println(currentState);
-        remoteControl.stopFunction(rotateRightUntilLineConst);
-        remoteControl.startFunction(lineFollowingConst);
-      }
-    break;
-
-  case rotateRightUntilLineAgain:
-  chassis.setMotorEfforts(50, -35);
-      if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-        Serial.println(qtr.readLineBlack(sensorValues));
-    currentState = raiseToPlaceFourtyFive;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    remoteControl.startFunction(takeOffLowPlateConst);
-      }
-    break;
-  case rotateRightAfterPlacementSixtyTower:
-
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    currentState = forwardUntilTurnToLeaveSixty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardFunctConst);
-    break;
-  case rotateUntilLineAndReplaceSixty:
-    remoteControl.stopFunction(rotateRightUntilLineConst);
-    Serial.println("Replace Me with a New Robot Plz Master");
-    break;
+  if(!targetReached) {
+    chassis.setWheelSpeeds(-5.00, -5.00);
   }
-  }
-}
-
-void rotateLeftUntilLineFunct()
-{
-  Serial.println(qtr.readLineBlack(sensorValues));
-  if (chassis.checkMotionComplete())
+  else
   {
-  switch (currentState)
-  {
-  case rotateLeftUntilLine:
-  chassis.setMotorEfforts(-35, 50);
-  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-    currentState = lineFollowBlockFourtyFive;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    remoteControl.startFunction(lineFollowingConst);
-      }
-    break;
-
-  case rotateLeftUntilLineAgain:
-    chassis.setMotorEfforts(-35, 50);
-  if (qtr.readLineBlack(sensorValues) > 100 && qtr.readLineBlack(sensorValues) < 900)
-      {
-    Serial.println(qtr.readLineBlack(sensorValues));
-    chassis.setMotorEfforts(0, 0);
-    currentState = raiseToPlaceSixty;
-    Serial.println(currentState);
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    remoteControl.startFunction(takeOffHighPlateConst);
-      }
-    break;
-  case rotateLeftAfterPlacementFourtyTower:
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    currentState = forwardUntilTurnToLeaveFourty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardFunctConst);
-    break;
-  case rotateUntilLineAndReplaceFourty:
-    remoteControl.stopFunction(rotateLeftUntilLineConst);
-    Serial.println("Replace Me with a New Robot Plz Master");
-    break;
-  }
-  }
-}
-
-void forwardFunct()
-{
-  switch (currentState)
-  {
-  case forwardUntilTurnToLeaveFourty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    currentState = forwardUntilLineFourty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardUntilLineConst);
-    break;
-
-  case forwardUntilTurnToLeaveSixty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    currentState = forwardUntilLineSixty;
-    Serial.println(currentState);
-    remoteControl.startFunction(forwardUntilLineConst);
-    break;
-  }
-}
-
-void forwardUntilLine()
-{
-  if (chassis.checkMotionComplete()) {
-  switch (currentState)
-  {
-  case forwardUntilLineFourty:
-     chassis.setMotorEfforts(50, 50);
-     Serial.println(qtr.readLineBlack(sensorValues));
-     if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300)
-    {
-    currentState = replaceStepOneFourty;
-    Serial.println(currentState);
     chassis.idle();
+    remoteControl.stopFunction(calebFunctionConst);
+
+    switch (currentState)
+    {
+      case CalebFunctionFourty:
+        remoteControl.startFunction(turnForConst);
+        break;
+
+      case CalebFunctionSixty:
+        remoteControl.startFunction(turnForConst);
+        break;
+
+      case backUpFourtyFive:
+        remoteControl.startFunction(driveForConst);
+        break;
+
+      case backUpSixty:
+          currentState = waitForRefereeSixty;
+          Serial.println(currentState);
+        //remoteControl.startFunction(driveForConst);
+        break;
+
+      case backUpFourtyFiveAgain:
+        remoteControl.startFunction(turnForConst);
+        break;
+
+      case backUpSixtyAgain:
+        remoteControl.startFunction(turnForConst);
+        break;
+
+      case leaveAfterPlacementFourtyTower:
+            remoteControl.startFunction(turnForConst);
+        break;
+
+      case leaveAfterPlacementSixtyTower:
+        remoteControl.startFunction(turnForConst);
+        break;
     }
-    //chassis.turnFor(-90, 90.0, false);
-    break;
-  case replaceStepOneFourty:
-    chassis.setMotorEfforts(70, 0);
-    Serial.println(qtr.readLineBlack(sensorValues));
-    if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300){
-      chassis.setMotorEfforts(0,0);
-      currentState = replaceStepTwoFourty;
-      Serial.println(currentState);
-    }
-  break;
-  case replaceStepTwoFourty:
-     chassis.setMotorEfforts(50, 50);
-        if (qtr.readLineBlack(sensorValues) < 700 && qtr.readLineBlack(sensorValues) > 300)
-  {
-    currentState = replaceStepThreeFourty;
-    Serial.println(currentState);
-    chassis.turnFor(-90, 90.0, true);
-  }
-  break;
-  case replaceStepThreeFourty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    remoteControl.startFunction(remote9);
-    remoteControl.stopFunction(remote9);
-    Serial.println("Replace Me with a New Robot Plz Master");
-  break;
-  case forwardUntilLineSixty:
-    currentState = replaceStepOneSixty;
-    Serial.println(currentState);
-    chassis.idle();
-    chassis.driveFor(82, 10, true);
-    chassis.turnFor(90, 90.0, false);
-    break;
-  case replaceStepOneSixty:
-    currentState = replaceStepTwoSixty;
-    Serial.println(currentState);
-    chassis.driveFor(20, 10, false);
-  break;
-  case replaceStepTwoSixty:
-    currentState = replaceStepThreeSixty;
-    Serial.println(currentState);
-    chassis.turnFor(90, 90.0, false);
-  break;
-  case replaceStepThreeSixty:
-    remoteControl.stopFunction(forwardUntilLineConst);
-    remoteControl.startFunction(remote9);
-    remoteControl.stopFunction(remote9);
-    Serial.println("Replace Me with a New Robot Plz Master");
-  break;
-  }
   }
 }
+
+//rotate the bot a given amount until it reaches a line
+void rotateUntilLine() {
+  qtr.read(sensorValues);
+  Serial.print("FIRST:");
+  Serial.print(sensorValues[0]);
+  Serial.print(" SECOND:");
+  Serial.println(sensorValues[1]);
+
+  if(!(lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
+    if( currentState ==  rotateRightUntilLineState|| currentState == rotateRightUntilLineAgain || currentState == rotateRightOppositeSideFourty || currentState == rotateUntilFinishedFourty || currentState == rotateRightAfterPlacementSixtyTower) {
+      chassis.setMotorEfforts(100, -50);
+    } else if( currentState == rotateLeftUntilLineState || currentState == rotateLeftUntilLineAgain || currentState == rotateLeftOppositeSideSixty || currentState == rotateUntilFinishedSixty || currentState == rotateLeftAfterPlacementFourtyTower) {
+      chassis.setMotorEfforts(-50, 100);
+    }
+  } 
+  else 
+  {
+    remoteControl.stopFunction(rotateUntilLineConst);
+    chassis.idle();
+
+    switch (currentState) {
+      case rotateRightUntilLineState:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowBlockSixty);
+        break;
+
+      case rotateRightUntilLineAgain:
+        remoteControl.startFunction(takeOffLowPlateConst,
+          currentState = raiseToPlaceFourtyFive);
+        break;
+
+      case rotateLeftUntilLineState:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowBlockFourtyFive);
+        break;
+
+      case rotateLeftUntilLineAgain:
+        remoteControl.startFunction(takeOffHighPlateConst,
+          currentState = raiseToPlaceSixty);
+        break;
+      case rotateLeftAfterPlacementFourtyTower:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowUntilBlockFourtyLast);
+      break;
+      case rotateRightAfterPlacementSixtyTower:
+        remoteControl.startFunction(lineFollowingConst,
+          currentState = lineFollowUntilBlockSixtyLast);
+      break;
+      case rotateRightOppositeSideFourty:
+        remoteControl.startFunction(driveForConst, 
+          currentState = driveBeforeFinishFourty);
+      break;
+      case rotateLeftOppositeSideSixty:
+        remoteControl.startFunction(driveForConst,
+          currentState = driveBeforeFinishSixty);
+      break;
+      case rotateUntilFinishedFourty: 
+        chassis.idle();
+        currentState = 0;
+        Serial.println("You're done! :) <3 ");
+      break; 
+      case rotateUntilFinishedSixty: 
+        chassis.idle();
+        currentState = 0;
+        Serial.println("You're done! :) <3 ");
+      break; 
+    }
+  }
+}
+
+// void forwardUntilLine() {
+//   if(!(lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
+
+//   }
+// }
 
 void returnMotorPosition()
 {
   Serial.println(motor.getPosition());
+}
+
+void turnToPausableResume() {
+  //calculates how far the bot has already gone
+  float deltaAngle = (chassis.getRightEncoderCount() - startPositionRight) / ((chassis.robotRadius * 3.14 / 180.0) / chassis.cmPerEncoderTick);
+  float angleLeft = currentTarget - deltaAngle;
+  
+  // Serial.print("DELTA LEFT: ");    
+  // Serial.println(angleLeft);
+
+  //set the bot to drive the remainder
+  chassis.turnFor(angleLeft,currentSpeed);
+}
+
+void turnToPausableResume(float target, float speed) {
+  currentTarget = target;
+  currentSpeed = speed;
+  turnToPausableResume();
+}
+
+//used to reset the pausable turnFor
+void turnToPausable(float target, float speed) {
+  startPositionLeft = chassis.getLeftEncoderCount();
+  startPositionRight = chassis.getRightEncoderCount();
+
+  turnToPausableResume(target,speed);
+}
+
+void driveToPausableResume() {
+  //call once
+  float newDeltaL = (currentTarget/chassis.cmPerEncoderTick - (chassis.getLeftEncoderCount() - startPositionLeft)) * chassis.cmPerEncoderTick;
+  float newDeltaR = (currentTarget/chassis.cmPerEncoderTick - (chassis.getRightEncoderCount() - startPositionRight)) * chassis.cmPerEncoderTick;
+  float newDelta = (newDeltaL + newDeltaR)/2;
+
+  // Serial.print("DELTA: ");    
+  // Serial.println(newDelta);
+
+  //continously call
+  chassis.driveFor(newDelta,currentSpeed);
+}
+
+// driveFor being pausable
+void driveToPausableResume(float target, float speed) {
+  currentTarget = target;
+  currentSpeed = speed;
+  driveToPausableResume();
+}
+
+//used to reset the pausable driveFor
+void driveToPausable(float target, float speed) {
+  // calculate the total motion in encoder ticks
+  startPositionLeft = chassis.getLeftEncoderCount();
+  startPositionRight = chassis.getRightEncoderCount();
+
+  driveToPausableResume(target,speed);
 }
 
 void setup()
@@ -1118,13 +1120,8 @@ void setup()
   qtr.setTypeAnalog();
   qtr.setSensorPins((const uint8_t[]){A4, A3}, SensorCount);
 
-  //auto calibraiton
-  // qtr.calibrationOn.minimum[0] = lineFollowCaliLow;
-  // qtr.calibrationOn.maximum[0] = lineFollowCaliHigh;
-
-  pinMode(servoEnc,INPUT);
-  pinMode(ultrasonicEchoPin, INPUT);
-  pinMode(ultrasonicTriggerPin, OUTPUT);
+  //ultrasonic setup
+  HCSR04.begin(ultrasonicTriggerPin, ultrasonicEchoPin);
 
   remoteControl.setup();
 
@@ -1142,13 +1139,12 @@ void setup()
   remoteControl.onPress(ultrasonicDistanceTest, remote0);
   remoteControl.onPress(returnMotorPosition, remoteBack);
 
-  remoteControl.toggleFunc(fourtyFiveDegreeSide, remote1);
+ // remoteControl.toggleFunc(fourtyFiveDegreeSide, remote1);
   remoteControl.toggleFunc(sixtyDegreeSide, remote2);
   remoteControl.onPress(resetEncoder, remote3);
 
   remoteControl.onPress(lineFollowCalibration, remote4);
-  remoteControl.toggleFunc(linefollowTesting, remote5);
-  remoteControl.toggleFunc(qtrReadings, remote6);
+  remoteControl.toggleFunc(lineFollowing, remote5);
 
   remoteControl.eStop(stopIt, remote9);
 
@@ -1167,15 +1163,14 @@ void setup()
 
   remoteControl.toggleFunc(calebFunction, calebFunctionConst);
 
-  remoteControl.toggleFunc(rotateRightUntilLineFunct, rotateRightUntilLineConst);
-  remoteControl.toggleFunc(rotateLeftUntilLineFunct, rotateLeftUntilLineConst);
-
-  remoteControl.toggleFunc(forwardFunct, forwardFunctConst);
-  remoteControl.toggleFunc(forwardUntilLine, forwardUntilLineConst);
+  remoteControl.toggleFunc(rotateUntilLine, rotateUntilLineConst);
 
   remoteControl.toggleFunc(goToBottomEncoder, remoteVolMinus);
 
-  remoteControl.ePause(stopIt,remote8);
+  remoteControl.toggleFunc(driveFor,driveForConst);
+  remoteControl.toggleFunc(turnFor,turnForConst);
+
+  remoteControl.ePause(stopIt,unPause,remote8);
 
   delay(4000);
   Serial.println("READY!");

@@ -44,10 +44,6 @@ void RemoteControl::onPress(Func func, uint8_t remoteButton) {
 }
 
 void RemoteControl::eStop(Func func, uint8_t remoteButton) {
-    if(currentFunctionCount >= maxNumberOfFunctions) { 
-        Serial.println("ERROR: TOO MANY FUNCTIONS DELCARED");
-        return;
-    }
     eStopIndex = currentFunctionCount;
     onPress(func,remoteButton);
 }
@@ -59,9 +55,11 @@ void RemoteControl::runCurrentFunctions() {
     }
 }
 
-void RemoteControl::ePause(Func func, uint8_t remoteButton) {
+void RemoteControl::ePause(Func pauseFunc, Func unPauseFunc, uint8_t remoteButton) {
     ePauseIndex = currentFunctionCount;
-    onPress(func, remoteButton);
+    onPress(pauseFunc, remoteButton);
+    eUnPauseIndex = currentFunctionCount;
+    onPress(unPauseFunc, 0x69);
 }
 
 
@@ -100,6 +98,7 @@ void RemoteControl::checkRemoteButtons() {
         }
         if(code == remoteButtons[ePauseIndex]) {
             Serial.println("EPAUSE DISABLED");
+            functions[eUnPauseIndex]();
             ePaused = false;
         }
         
@@ -119,4 +118,15 @@ void RemoteControl::startFunction(uint8_t remoteButton) {
             activeFunctions[i] = true;
         }
     }
+}
+
+void RemoteControl::startFunction(uint8_t remoteButton, int printIt = -1) {
+    for(int i = 0; i < currentFunctionCount; i++) {
+        if(remoteButton == remoteButtons[i]) {
+            activeFunctions[i] = true;
+        }
+    }
+    if(printIt != -1) {
+            Serial.println(printIt);
+        }
 }
