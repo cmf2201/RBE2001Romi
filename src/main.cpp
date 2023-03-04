@@ -106,11 +106,11 @@ void lineFollowing()
   uint16_t position = qtr.readLineBlack(sensorValues);
   if (position > 700)
   {
-    chassis.setMotorEfforts(80, 40);
+    chassis.setMotorEfforts(80, 50);
   }
   else if (position < 300)
   {
-    chassis.setMotorEfforts(40, 80);
+    chassis.setMotorEfforts(50, 80);
   }
   else
   {
@@ -303,7 +303,7 @@ void turnFor() {
     float speed = 0;
     switch(currentState) {
       case CalebFunctionFourty:
-        angle = 90.0;
+        angle = 40.0;
         speed = 40.0;
         break;
 
@@ -313,7 +313,7 @@ void turnFor() {
         break;
 
       case backUpFourtyFiveAgain:
-        angle = -90.0;
+        angle = -40.0;
         speed = 40.0;
         break;
 
@@ -818,7 +818,7 @@ void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(500);
+    motor.moveTo(580);
   }
   else
   {
