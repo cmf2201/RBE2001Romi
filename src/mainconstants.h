@@ -109,7 +109,7 @@ int currentTarget;
 int currentSpeed;
 
 //constants for line following constants
-#define lineFoundThresholdHigh 690
+#define lineFoundThresholdHigh 900
 
 
 

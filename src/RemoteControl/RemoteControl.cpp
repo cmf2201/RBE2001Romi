@@ -62,11 +62,20 @@ void RemoteControl::ePause(Func pauseFunc, Func unPauseFunc, uint8_t remoteButto
     onPress(unPauseFunc, 0x69);
 }
 
+//disables the remote if true
+void RemoteControl::disableRemote(Func func, uint8_t remoteButton) {
+    remoteButtons[currentFunctionCount] = remoteButton;
+    runOnce[currentFunctionCount] = true;
+    functions[currentFunctionCount] = func;
+    disableIndex = currentFunctionCount;
+    currentFunctionCount++;
+}
+
 
 //check if the remote is being pressed for any functions, and runs functions that are active
 void RemoteControl::checkRemoteButtons() {
     int16_t code = decoder.getKeyCode();
-    if(!(eStopped || ePaused)) {
+    if(!(eStopped || ePaused || disabled)) {
         for(int i = 0; i < currentFunctionCount; i++) {
             if(code == remoteButtons[i]) {
                 if(runOnce[i]){
@@ -81,6 +90,10 @@ void RemoteControl::checkRemoteButtons() {
                         Serial.println("EPAUSE ENABLED");
                         ePaused = true;
                     }
+                    if(disableIndex == i) {
+                        Serial.println("BUTTONS DISABLED");
+                        disabled = true;
+                    }
                     functions[i]();
                 } else {
                     activeFunctions[i] = !activeFunctions[i];
@@ -92,14 +105,23 @@ void RemoteControl::checkRemoteButtons() {
             }
         }
     } else {
-        if(code == remoteButtons[eStopIndex]) {
-            Serial.println("ESTOP DISABLED");
-            eStopped = false;
+        if(!disabled)
+        {
+            if(code == remoteButtons[eStopIndex]) {
+                Serial.println("ESTOP DISABLED");
+                eStopped = false;
+            }
+            if(code == remoteButtons[ePauseIndex]) {
+                Serial.println("EPAUSE DISABLED");
+                functions[eUnPauseIndex]();
+                ePaused = false;
+            }
         }
-        if(code == remoteButtons[ePauseIndex]) {
-            Serial.println("EPAUSE DISABLED");
-            functions[eUnPauseIndex]();
-            ePaused = false;
+        else{
+            if(code == remoteButtons[disableIndex]) {
+                Serial.println("BUTTONS ENABLED");
+                disabled = false;
+            }
         }
         
     }
