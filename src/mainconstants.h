@@ -35,9 +35,9 @@ int servoEnc = A0;
 bool servoActive = false;
 
 int servoClosedPositionMS = 1950;
-int servoClosedPositionAR = 400;
+int servoClosedPositionAR = 450;
 int servoOpenedPositionMS = 1000;
-int servoOpenedPositionAR = 205;
+int servoOpenedPositionAR = 1010;
 
 int servoStuckTolerance = 4;
 int servoCloseTolerance = 7;
@@ -67,7 +67,7 @@ int motorEffort = 400;
 int deadBandCurrentEffort = 0;
 
 // motor positions for bottom out gripper robot
-int bottomOutSpot45 = 4000;
+int bottomOutSpot45 = 3300;
 int bottomOutSpot60 = 8400;
 
 int previousMotorPosition = 0;
@@ -77,10 +77,10 @@ const byte ultrasonicTriggerPin = 3;
 const byte ultrasonicEchoPin = 30;
 int frontDistance = 0;
 long ultrasonicSignalDuration = 0;
-float towerDistanceOne = 8.0;
+float towerDistanceOne = 9.5;
 float towerDistanceTwo = 3.5;
-float blockDistanceOne = 2.5;
-float blockDistanceTwo = 2.5;
+float blockDistanceOne = 5.0;
+float blockDistanceTwo = 5.5;
 
 //back up variables
 float wallToLineDist = 27.00;

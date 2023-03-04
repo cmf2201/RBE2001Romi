@@ -229,12 +229,12 @@ void driveFor() {
         break;
 
       case driveBeforeFinishFourty: 
-        distance = 25;
-        speed = 30;
+        distance = 15;
+        speed = 20;
       break; 
       case driveBeforeFinishSixty: 
-        distance = 25;
-        speed = 30;
+        distance = 15;
+        speed = 20;
       break;
     }
     driveToPausable(distance,speed);
@@ -303,7 +303,7 @@ void turnFor() {
     float speed = 0;
     switch(currentState) {
       case CalebFunctionFourty:
-        angle = 90.0;
+        angle = 40.0;
         speed = 40.0;
         break;
 
@@ -313,7 +313,7 @@ void turnFor() {
         break;
 
       case backUpFourtyFiveAgain:
-        angle = -90.0;
+        angle = -40.0;
         speed = 40.0;
         break;
 
@@ -557,14 +557,15 @@ void closeBottomGripper() {
 void openGripper()
 {
   int servoCurrentPosition = analogRead(servoEnc);
- // Serial.println(servoCurrentPosition);
-  if(servoCurrentPosition > servoOpenedPositionAR) {
+  // Serial.println(servoCurrentPosition);
+  if(servoCurrentPosition < servoOpenedPositionAR) {
   //  Serial.println(servoCurrentPosition);
     gripperServo.writeMicroseconds(servoOpenedPositionMS);
   //  Serial.println("OPENING");
   } else {
     Serial.println("FINISHED!");
     // Stop servo onced jaw is opened
+    gripperServo.writeMicroseconds(0);
     remoteControl.stopFunction(openGripperConst);
     remoteControl.stopFunction(remoteLeft);
 
@@ -593,41 +594,19 @@ void openGripper()
 
 void closeGripper()
 {
-  int servoCurrentPosition = analogRead(servoEnc);
-  //Serial.println(servoCurrentPosition);
-  if(!(abs(servoCurrentPosition - servoClosedPositionAR) <= servoCloseTolerance)) {
-    // every (servoReadingDelay) ms, try to move the gripper
-    if(millis() > servoPrevMS + servoReadingDelay) {
-      gripperServo.writeMicroseconds(servoClosedPositionMS);
+int servoCurrentPosition = analogRead(servoEnc);
+  // Serial.println(servoCurrentPosition);
 
-      //check if the servo is getting stuck. If so, open the Bottom Gripper.
-      if(abs(servoPrevReading - servoCurrentPosition) < servoStuckTolerance) {
-        //once servoCount has gotten to 15 or greater, run the bottom out gripper code instead.
-        if(servoStillCount >= 15) {
-          Serial.println("STUCK!");
-          openGripper();
-          remoteControl.stopFunction(closeGripperConst);
-          remoteControl.stopFunction(remoteRight);
-        }
-        servoStillCount++;
-        
-      } else {
-        servoStillCount = 0;
-      }
-
-      //if Gripper has reached target position, finish movement
-      
-
-      servoPrevReading = servoCurrentPosition;
-      servoPrevMS = millis();
-    } 
-
-  } else {
-      // Stop servo onced jaw is vlosed
-      Serial.println("FINISHED");
-      remoteControl.stopFunction(closeGripperConst);
-      remoteControl.stopFunction(remoteRight);
-
+  if (servoCurrentPosition > servoClosedPositionAR)
+  {
+    gripperServo.writeMicroseconds(servoClosedPositionMS);
+  }
+  else
+  {
+    // Stop servo onced jaw is closed
+    gripperServo.writeMicroseconds(0);
+    remoteControl.stopFunction(closeGripperConst);
+    remoteControl.stopFunction(remoteRight);
       switch (currentState)
       {
       case confirmedFourtyFiveTower:
@@ -818,7 +797,7 @@ void fourBarLow()
 {
   if (motor.getToggleOff())
   {
-    motor.moveTo(500);
+    motor.moveTo(300);
   }
   else
   {
@@ -1037,7 +1016,7 @@ void forwardUntilLine() {
   Serial.print(sensorValues[0]);
   Serial.print(" SECOND:");
   Serial.println(sensorValues[1]);
-  chassis.setMotorEfforts(90,100);
+  chassis.setMotorEfforts(67,60);
   if((lineFoundThresholdHigh < sensorValues[0] || lineFoundThresholdHigh < sensorValues[1])) {
     chassis.idle();
     //remoteControl.stopFunction(forwardFunctConst);
@@ -1190,6 +1169,7 @@ void setup()
   remoteControl.ePause(stopIt,unPause,remote8);
 
   delay(4000);
+  Serial.println(readBatteryMillivolts());
   Serial.println("READY!");
 }
 
