@@ -1118,6 +1118,12 @@ void driveToPausable(float target, float speed) {
   driveToPausableResume(target,speed);
 }
 
+void resumeAtMiddle(){
+  currentState = waitForRefereeSixty;
+  remoteControl.stopFunction(remotePlayPause);
+}
+
+
 void setup()
 {
   // Start the serial monitor
@@ -1186,6 +1192,8 @@ void setup()
   //remoteControl.toggleFunc(forwardUntilLine, forwardUntilLineConst);
 
   remoteControl.toggleFunc(forwardUntilLine, remote7);
+
+  remoteControl.toggleFunc(resumeAtMiddle, remotePlayPause);
 
   remoteControl.ePause(stopIt,unPause,remote8);
 
